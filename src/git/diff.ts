@@ -16,6 +16,19 @@ export async function getChangedRanges(root: string, staged: boolean): Promise<C
   return parseChangedRanges(output);
 }
 
+export async function getChangedFiles(root: string, staged: boolean): Promise<string[]> {
+  const args = ["diff", "--name-only", "--relative"];
+  if (staged) {
+    args.splice(1, 0, "--cached");
+  }
+
+  const output = await git(root, args);
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 export function parseChangedRanges(diff: string): ChangedRange[] {
   const ranges: ChangedRange[] = [];
   let currentFile: string | undefined;
