@@ -20,7 +20,9 @@ export function registerFindCommand(program: Command): void {
         dependedBy: stringOption(options["dependedBy"]),
         depth: numberOption(options["depth"]),
         file: stringOption(options["file"]),
-        planId: stringOption(options["plan"])
+        planId: stringOption(options["plan"]),
+        changed: options["changed"] === true,
+        staged: options["staged"] === true
       });
       printYaml(result);
     });

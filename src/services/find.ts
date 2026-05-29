@@ -4,6 +4,8 @@ import { HarnError } from "../core/errors.js";
 import type { HarnPaths } from "../core/repo.js";
 import type { Assumption } from "../domain/assumption.js";
 import { loadHarnProject, type HarnProject } from "../domain/project.js";
+import { anchorsTouchedByRanges } from "../git/anchors.js";
+import { getChangedRanges } from "../git/diff.js";
 
 export interface FindOptions {
   assumptionId?: string;
@@ -11,6 +13,8 @@ export interface FindOptions {
   depth?: number;
   file?: string;
   planId?: string;
+  changed?: boolean;
+  staged?: boolean;
 }
 
 export async function findHarn(paths: HarnPaths, options: FindOptions): Promise<unknown> {
@@ -28,6 +32,10 @@ export async function findHarn(paths: HarnPaths, options: FindOptions): Promise<
     return findPlanScope(project, options.planId);
   }
 
+  if (options.changed || options.staged) {
+    return findChangedAnchors(paths.root, scan.anchors, options.staged === true);
+  }
+
   if (options.assumptionId) {
     return findAssumption(project.assumptions, scan.anchors, options.assumptionId);
   }
@@ -39,6 +47,17 @@ export async function findHarn(paths: HarnPaths, options: FindOptions): Promise<
       plans: project.plans.length
     }
   };
+}
+
+async function findChangedAnchors(root: string, anchors: Anchor[], staged: boolean): Promise<unknown> {
+  const ranges = await getChangedRanges(root, staged);
+  const touched = anchorsTouchedByRanges(anchors, ranges).map((anchor) => ({
+    assumption: anchor.assumptionId,
+    ref: anchor.ref,
+    file: anchor.file
+  }));
+
+  return staged ? { staged_anchors: touched } : { changed_anchors: touched };
 }
 
 function findAssumption(assumptions: Assumption[], anchors: Anchor[], assumptionId: string): unknown {
