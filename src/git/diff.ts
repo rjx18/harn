@@ -23,10 +23,21 @@ export async function getChangedFiles(root: string, staged: boolean): Promise<st
   }
 
   const output = await git(root, args);
-  return output
+  const changed = output
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+
+  if (staged) {
+    return changed;
+  }
+
+  const untracked = (await git(root, ["ls-files", "--others", "--exclude-standard"]))
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return [...new Set([...changed, ...untracked])];
 }
 
 export function parseChangedRanges(diff: string): ChangedRange[] {

@@ -1,0 +1,70 @@
+import { readYamlFile, writeYamlFile } from "../core/yaml.js";
+import type { HarnPaths } from "../core/repo.js";
+import { assumptionPath, planPath } from "../core/repo.js";
+import { parseAssumption } from "../domain/assumption.js";
+import { parsePlan } from "../domain/plan.js";
+import { getHeadCommit } from "../git/status.js";
+import { checkDiff } from "./check.js";
+
+export async function applyPlan(paths: HarnPaths, planId: string): Promise<unknown> {
+  const check = await checkDiff(paths, { planId });
+  if (check.result !== "pass") {
+    return {
+      result: "blocked",
+      plan: { id: planId },
+      blocking: check.blocking
+    };
+  }
+
+  const rawPlan = (await readYamlFile(planPath(paths, planId))) as Record<string, unknown>;
+  const plan = parsePlan(rawPlan, planPath(paths, planId));
+
+  for (const action of plan.assumptions.retire) {
+    const path = assumptionPath(paths, action.id);
+    const rawAssumption = (await readYamlFile(path)) as Record<string, unknown>;
+    const assumption = parseAssumption(rawAssumption, path);
+    await writeYamlFile(path, {
+      ...rawAssumption,
+      state: "retired",
+      retired_by: plan.id,
+      title: assumption.title
+    });
+  }
+
+  for (const action of plan.assumptions.create) {
+    await writeYamlFile(assumptionPath(paths, action.id), {
+      id: action.id,
+      title: action.title,
+      state: "active",
+      statement: action.statement,
+      depends_on: action.depends_on,
+      created_by: plan.id
+    });
+  }
+
+  const applied = {
+    applied_at: new Date().toISOString(),
+    commit: await getHeadCommit(paths.root)
+  };
+
+  const { lock: _lock, ...planWithoutLock } = rawPlan;
+  await writeYamlFile(planPath(paths, plan.id), {
+    ...planWithoutLock,
+    applied
+  });
+
+  return {
+    result: "applied",
+    plan: {
+      id: plan.id,
+      state: "applied"
+    },
+    applied,
+    assumptions: {
+      retired: plan.assumptions.retire.map((action) => action.id),
+      created: plan.assumptions.create.map((action) => action.id),
+      reviewed: plan.assumptions.reviewed.map((action) => action.id)
+    },
+    ...(check.warnings ? { warnings: check.warnings } : {})
+  };
+}
