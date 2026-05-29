@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { printYaml } from "../core/output.js";
 import { findRepoRoot, getHarnPaths } from "../core/repo.js";
 import { checkPlan } from "../services/plan-check.js";
-import { notImplemented } from "./not-implemented.js";
+import { lockPlan } from "../services/plan-lock.js";
 
 export function registerPlanCommand(program: Command): void {
   const plan = program
@@ -20,5 +20,8 @@ export function registerPlanCommand(program: Command): void {
   plan
     .command("lock <planId>")
     .description("Freeze a valid plan.")
-    .action(() => notImplemented("harn plan lock"));
+    .action(async (planId: string) => {
+      const root = findRepoRoot();
+      printYaml(await lockPlan(getHarnPaths(root), planId));
+    });
 }
