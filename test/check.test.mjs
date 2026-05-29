@@ -64,3 +64,15 @@ test("harn check blocks changed keep anchors", async () => {
   assert.match(output, /result: blocked/);
   assert.match(output, /type: kept_anchor_changed/);
 });
+
+test("harn check --staged uses the single locked plan", async () => {
+  const root = await createLockFixture();
+  runHarn(root, "plan", "lock", "p-d4f8qa");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
+  execFileSync("git", ["add", "backend/workflow.py"], { cwd: root });
+
+  const output = runHarn(root, "check", "--staged");
+
+  assert.match(output, /result: pass/);
+  assert.match(output, /planned: remove/);
+});
