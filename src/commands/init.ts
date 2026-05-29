@@ -1,9 +1,15 @@
 import type { Command } from "commander";
-import { notImplemented } from "./not-implemented.js";
+import { printYaml } from "../core/output.js";
+import { findRepoRoot, getHarnPaths } from "../core/repo.js";
+import { initializeHarn } from "../services/init.js";
 
 export function registerInitCommand(program: Command): void {
   program
     .command("init")
     .description("Create the .harn directory structure.")
-    .action(() => notImplemented("harn init"));
+    .action(async () => {
+      const root = findRepoRoot();
+      const result = await initializeHarn(getHarnPaths(root));
+      printYaml(result);
+    });
 }
