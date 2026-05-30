@@ -11,23 +11,25 @@ It can be high-level or low-level. The important test is cognitive load: if a fu
 Use this default shape:
 
 ```txt
-<subject> must/does <behavior> when/for <context> because/so <reason or consequence>.
+<subject> must/does <observable behavior or invariant> when/for <specific scope or trigger>, because/so <reason, consumer, or consequence>.
 ```
 
 The sentence does not need to be mechanical, but it should answer:
 
 ```txt
-what owns or performs the behavior
-what behavior must remain true
-when or where it applies
-why it matters, or what breaks if changed
+what code/system thing is this about?
+what must stay true?
+when or where does it apply?
+why does it matter?
 ```
+
+The behavior must be observable in code, tests, queries, schema, config, API shape, or runtime UI behavior.
 
 Examples:
 
 ```txt
-Cases must reject a second active workflow because downstream status logic assumes one active workflow.
-Invoice totals are stored in cents so arithmetic avoids floating-point rounding.
+Cases must reject a second active workflow when active_workflow_id is already set because downstream status logic assumes one active workflow.
+Invoice totals are stored in cents for all persisted invoice records so arithmetic avoids floating-point rounding.
 The terminal renderer owns the command and output regions after hydration because terminal.js writes command IO there.
 The hero background moves with a parallax effect while the intro section scrolls because the page relies on scroll-position animation.
 The commit detail panel refreshes when a graph milestone is selected so milestone state stays visible to the user.
@@ -49,6 +51,8 @@ Use this test:
 > If this statement changes, should at least one known code location, test, query, schema, or API shape be reviewed?
 
 If yes, it can be a Harn assumption.
+
+If the statement cannot be anchored to code, a test, a query, config, schema, or API shape, it is probably not a Harn assumption.
 
 ## Good Assumptions
 

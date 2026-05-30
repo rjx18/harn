@@ -75,14 +75,25 @@ An assumption is a tracked statement that code depends on.
 Default shape:
 
 ```txt
-<subject> must/does <behavior> when/for <context> because/so <reason or consequence>.
+<subject> must/does <observable behavior or invariant> when/for <specific scope or trigger>, because/so <reason, consumer, or consequence>.
 ```
 
-Use the shape to force clarity, but keep the sentence natural.
+Use the shape to force clarity, but keep the sentence natural. The behavior must be observable in code, tests, queries, schema, config, API shape, or runtime UI behavior.
+
+Every assumption should answer:
+
+```txt
+what code/system thing is this about?
+what must stay true?
+when or where does it apply?
+why does it matter?
+```
 
 Create or update a Harn assumption only when this is true:
 
 > If this statement changes, at least one known code location, test, query, schema, or API shape should be reviewed.
+
+If the statement cannot be anchored to code, a test, a query, config, schema, or API shape, it is probably not a Harn assumption.
 
 Good assumptions are specific, stable enough to matter, important if wrong, connected to code, and reviewable when changed.
 

@@ -94,14 +94,22 @@ An assumption is a named statement that code depends on.
 
 If the statement changes or stops being true, known code locations should be checked.
 
+Default shape:
+
+```txt
+<subject> must/does <observable behavior or invariant> when/for <specific scope or trigger>, because/so <reason, consumer, or consequence>.
+```
+
+The behavior must be observable in code, tests, queries, schema, config, API shape, or runtime UI behavior.
+
 Good assumptions:
 
 ```txt
-A case has at most one active workflow.
-Invoice totals are stored in cents.
-Deleted records are soft-deleted.
-Users can only belong to one workspace.
-Tenant ID must be present on every query.
+A case must have at most one active workflow while workflow state is singular because downstream status logic reads one active workflow.
+Invoice totals are stored in cents for all persisted invoice records so arithmetic avoids floating-point rounding.
+Deleted records are soft-deleted for user-owned records so restore and audit flows can recover them.
+Users can only belong to one workspace during account setup because authorization derives permissions from one workspace.
+Tenant ID must be present on every tenant-scoped query so data cannot cross tenant boundaries.
 ```
 
 Bad assumptions:
@@ -115,6 +123,8 @@ The workflow system should be good.
 A useful test:
 
 > If this statement changes, can we point to specific code that should be checked?
+
+If the statement cannot be anchored to code, a test, a query, config, schema, or API shape, it is probably not a Harn assumption.
 
 ### 5.1 Assumption File
 
