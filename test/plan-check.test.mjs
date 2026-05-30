@@ -26,6 +26,16 @@ test("harn plan check catches missing dependent assumptions and anchor actions",
   assert.match(output, /type: missing_anchor_action/);
 });
 
+test("harn plan check allows anchors for assumptions created by the same plan", async () => {
+  const root = await createPlanWithCreatedAnchorFixture();
+
+  const output = runHarn(root, "plan", "check", "bootstrap-workflow");
+
+  assert.match(output, /result: valid/);
+  assert.match(output, /create:/);
+  assert.match(output, /single-active-workflow/);
+});
+
 async function createPlanFixture({ includeDependent, includeStatusAnchor }) {
   const root = await mkdtemp(join(tmpdir(), "harn-plan-check-"));
   await mkdir(join(root, ".harn", "assumptions"), { recursive: true });
@@ -73,6 +83,49 @@ async function createPlanFixture({ includeDependent, includeStatusAnchor }) {
       "      action: remove",
       "      reason: Guard rejects second active workflow.",
       ...statusAnchor,
+      "files:",
+      "  - backend/workflow.py"
+    ].join("\n")
+  );
+
+  return root;
+}
+
+async function createPlanWithCreatedAnchorFixture() {
+  const root = await mkdtemp(join(tmpdir(), "harn-plan-created-anchor-"));
+  await mkdir(join(root, ".harn", "assumptions"), { recursive: true });
+  await mkdir(join(root, ".harn", "plans"), { recursive: true });
+  await mkdir(join(root, "backend"), { recursive: true });
+
+  await writeFile(
+    join(root, "backend", "workflow.py"),
+    [
+      "# harn:assume single-active-workflow ref=workflow-guard",
+      "if active:",
+      "    raise Error()",
+      "# harn:end single-active-workflow"
+    ].join("\n")
+  );
+
+  await writeFile(
+    join(root, ".harn", "plans", "bootstrap-workflow.yaml"),
+    [
+      "id: bootstrap-workflow",
+      "title: Bootstrap workflow assumptions",
+      "assumptions:",
+      "  retire: []",
+      "  create:",
+      "    - id: single-active-workflow",
+      "      title: Single active workflow per case",
+      "      statement: A case has at most one active workflow.",
+      "      reason: Current workflow guard enforces this behavior.",
+      "      depends_on: []",
+      "  reviewed: []",
+      "anchors:",
+      "  single-active-workflow:",
+      "    workflow-guard:",
+      "      action: keep",
+      "      reason: Current guard enforces this assumption.",
       "files:",
       "  - backend/workflow.py"
     ].join("\n")
