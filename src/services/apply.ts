@@ -2,6 +2,7 @@ import { readYamlFile, writeYamlFile } from "../core/yaml.js";
 import type { HarnPaths } from "../core/repo.js";
 import { assumptionPath, planPath } from "../core/repo.js";
 import { parseAssumption } from "../domain/assumption.js";
+import { hashAssumptionContent } from "../domain/assumption-hash.js";
 import { parsePlan } from "../domain/plan.js";
 import { getHeadCommit } from "../git/status.js";
 import { checkDiff } from "./check.js";
@@ -34,6 +35,7 @@ export async function applyPlan(paths: HarnPaths, planId: string): Promise<unkno
   for (const action of plan.assumptions.create) {
     await writeYamlFile(assumptionPath(paths, action.id), {
       id: action.id,
+      hash: hashAssumptionContent({ title: action.title, statement: action.statement }),
       title: action.title,
       state: "active",
       statement: action.statement,

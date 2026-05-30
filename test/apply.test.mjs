@@ -36,7 +36,10 @@ test("harn apply retires and creates assumptions and marks plan applied", async 
 
   assert.match(output, /result: applied/);
   assert.match(retired, /state: retired/);
+  assert.match(retired, /retired_by: support-multiple-workflows/);
   assert.match(created, /state: active/);
+  assert.match(created, /hash: a-[a-f0-9]{12}/);
+  assert.match(created, /created_by: support-multiple-workflows/);
   assert.doesNotMatch(appliedPlan, /lock:/);
   assert.match(appliedPlan, /applied:/);
 });
