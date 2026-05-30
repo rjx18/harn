@@ -9,7 +9,8 @@ Bootstrap must be human-guided. Do not invent product rules, business rules, ass
 Create a small initial Harn layer:
 
 ```txt
-.harn/assumptions/ = current assumption truth
+.harn/plans/       = approved bootstrap plan
+.harn/assumptions/ = current assumption truth after apply
 source anchors     = code locations tied to assumptions
 ```
 
@@ -36,7 +37,7 @@ Bootstrap happens in three passes:
 ```txt
 Pass 1: Identify core entities/concepts
 Pass 2: Deep-dive approved entities and propose assumptions
-Pass 3: Add approved assumptions and anchors
+Pass 3: Add an approved bootstrap plan and anchors
 ```
 
 Each pass must end with human confirmation. Do not move to the next pass until the human approves the previous pass.
@@ -52,17 +53,17 @@ Then repeat Pass 2 and Pass 3 per entity:
 ```txt
 Round 1: Case
   Pass 2: Deep-dive Case and approve assumptions
-  Pass 3: Add Case assumptions and anchors
+  Pass 3: Add Case bootstrap plan and anchors
   Commit
 
 Round 2: Workflow
   Pass 2: Deep-dive Workflow and approve assumptions
-  Pass 3: Add Workflow assumptions and anchors
+  Pass 3: Add Workflow bootstrap plan and anchors
   Commit
 
 Round 3: Reporting
   Pass 2: Deep-dive Reporting and approve assumptions
-  Pass 3: Add Reporting assumptions and anchors
+  Pass 3: Add Reporting bootstrap plan and anchors
   Commit
 ```
 
@@ -156,53 +157,94 @@ Which uncertain assumptions need correction?
 Are any important assumptions missing for this entity?
 ```
 
-## Pass 3: Add Approved Assumptions And Anchors
+## Pass 3: Add Approved Bootstrap Plan And Anchors
 
-Write only approved assumptions into `.harn/assumptions/`.
+Write only approved assumptions into a plan under `.harn/plans/`.
 
-Use Harn-generated IDs when available. If no ID generator exists, use a random short ID in the form `a-xxxxxx`. Do not use sequential IDs like `A-001`.
+Use readable slug IDs. Agents write IDs, but Harn writes hashes during apply.
+
+Do not write `.harn/assumptions/` files directly. Applied assumptions are created by `harn apply`.
 
 Example:
 
 ```yaml
-id: a-7k3p9x
+id: bootstrap-workflow
+title: Bootstrap workflow assumptions
+
+assumptions:
+  retire: []
+  create:
+    - id: single-active-workflow
+      title: Single active workflow per case
+      statement: A case has at most one active workflow.
+      reason: Current workflow guard enforces this behavior.
+      depends_on: []
+  reviewed: []
+
+anchors:
+  single-active-workflow:
+    workflow-guard:
+      action: change
+      reason: Add anchor to current workflow guard.
+
+files:
+  - backend/services/workflow.py
+```
+
+After `harn apply`, Harn creates an applied assumption like:
+
+```yaml
+id: single-active-workflow
+hash: a-7e7e69cd6688
 title: Single active workflow per case
 state: active
 statement: A case has at most one active workflow.
 depends_on: []
+created_by: bootstrap-workflow
 ```
 
 Rules:
 
 ```txt
-state must be active
 statement must describe current truth
 depends_on should only include approved clear dependencies
+do not write hashes manually
 do not create retired assumptions during bootstrap unless explicitly asked
 ```
 
 Add anchors only to code that directly depends on the assumption.
 
+Preferred order:
+
+```txt
+1. Write the bootstrap plan.
+2. Run `harn plan check <plan-id>`.
+3. Run `harn plan lock <plan-id>`.
+4. Add source anchors listed in the plan.
+5. Run `harn check <plan-id>`.
+6. Run `harn apply <plan-id>`.
+```
+
 Single-line:
 
 ```python
-if case.active_workflow_id is not None:  # harn:assume a-7k3p9x ref=workflow-guard
+if case.active_workflow_id is not None:  # harn:assume single-active-workflow ref=workflow-guard
     raise CaseAlreadyHasActiveWorkflowError(case.id)
 ```
 
 Block:
 
 ```python
-# harn:assume a-7k3p9x ref=workflow-guard
+# harn:assume single-active-workflow ref=workflow-guard
 if case.active_workflow_id is not None:
     raise CaseAlreadyHasActiveWorkflowError(case.id)
-# harn:end a-7k3p9x
+# harn:end single-active-workflow
 ```
 
 Function-level:
 
 ```python
-# harn:assume a-7k3p9x ref=start-workflow scope=function
+# harn:assume single-active-workflow ref=start-workflow scope=function
 def start_workflow(case_id: str):
     ...
 ```
@@ -244,11 +286,11 @@ Show the human:
 entity: Workflow
 
 created_assumptions:
-  - id: a-7k3p9x
+  - id: single-active-workflow
     title: Single active workflow per case
 
 added_anchors:
-  - assumption: a-7k3p9x
+  - assumption: single-active-workflow
     ref: workflow-guard
     file: backend/services/workflow.py
 
@@ -277,6 +319,7 @@ Each commit should contain only:
 assumptions for the approved entity
 anchors for those assumptions
 directly necessary dependency links
+a bootstrap plan for those assumptions
 ```
 
 Do not mix unrelated entities in one bootstrap commit unless the human explicitly approves it.
@@ -287,11 +330,11 @@ Do not mix unrelated entities in one bootstrap commit unless the human explicitl
 Do not automate assumption or anchor creation with scripts.
 Do not invent business rules.
 Do not bootstrap the whole repo at once.
-Do not create fake plans.
 Do not create future-state assumptions.
+Do not write `.harn/assumptions/` directly.
+Do not write Harn hashes manually.
 Do not proceed between passes without human confirmation.
 If complexity is high, narrow the next pass to one entity.
 Ask open questions when code evidence is ambiguous.
 Prefer fewer, clearer assumptions over many vague ones.
 ```
-

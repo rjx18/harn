@@ -4,6 +4,9 @@ Harn is a repo-native guardrail for agentic coding.
 
 The MVP behavior is defined in `SPEC.md`.
 
+Agents write readable IDs such as `single-active-workflow`.
+Harn writes integrity hashes when plans are locked or applied.
+
 ```bash
 npx harn --help
 ```

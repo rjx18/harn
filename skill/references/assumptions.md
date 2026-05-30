@@ -74,12 +74,15 @@ obvious type conversions
 ## Assumption File
 
 ```yaml
-id: a-7k3p9x
+id: single-active-workflow
+hash: a-7e7e69cd6688
 title: Single active workflow per case
 state: active
 statement: A case has at most one active workflow.
 depends_on: []
 ```
+
+Use readable slug IDs. Harn writes `hash`; agents must not invent or edit it.
 
 Valid states:
 
@@ -93,28 +96,29 @@ retired
 Use `depends_on` when one assumption relies on another.
 
 ```yaml
-id: a-8m2q1z
+id: case-status-derived
+hash: a-ce77fd8faca3
 title: Case status derives from active workflow
 state: active
 statement: Case status is derived from the active workflow.
 depends_on:
-  - a-7k3p9x
+  - single-active-workflow
 ```
 
-If `a-7k3p9x` is retired, every depended-by assumption must be accounted for.
+If `single-active-workflow` is retired, every depended-by assumption must be accounted for.
 
 Find dependents:
 
 ```bash
-harn find --depended-by a-7k3p9x --depth 2
+harn find --depended-by single-active-workflow --depth 2
 ```
 
 If a dependent assumption remains valid, mark it as reviewed:
 
 ```yaml
 reviewed:
-  - id: a-8m2q1z
-    reason: It depends on a-7k3p9x.
+  - id: case-status-derived
+    reason: It depends on single-active-workflow.
     outcome: unchanged
     note: Case status already uses aggregate workflow state.
 ```
@@ -128,23 +132,23 @@ An anchor links source code to an assumption.
 Single-line:
 
 ```python
-if case.active_workflow_id is not None:  # harn:assume a-7k3p9x ref=workflow-guard
+if case.active_workflow_id is not None:  # harn:assume single-active-workflow ref=workflow-guard
     raise CaseAlreadyHasActiveWorkflowError(case.id)
 ```
 
 Block:
 
 ```python
-# harn:assume a-7k3p9x ref=workflow-guard
+# harn:assume single-active-workflow ref=workflow-guard
 if case.active_workflow_id is not None:
     raise CaseAlreadyHasActiveWorkflowError(case.id)
-# harn:end a-7k3p9x
+# harn:end single-active-workflow
 ```
 
 Function-level:
 
 ```python
-# harn:assume a-7k3p9x ref=start-workflow scope=function
+# harn:assume single-active-workflow ref=start-workflow scope=function
 def start_workflow(case_id: str):
     ...
 ```
@@ -158,8 +162,7 @@ Anchor identity:
 Example:
 
 ```txt
-a-7k3p9x:workflow-guard
+single-active-workflow:workflow-guard
 ```
 
 Anchor only important code. Do not anchor ordinary implementation details.
-

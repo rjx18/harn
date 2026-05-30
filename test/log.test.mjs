@@ -10,13 +10,13 @@ test("harn log lists applied plans in order", async () => {
   const root = await mkdtemp(join(tmpdir(), "harn-log-"));
   await mkdir(join(root, ".harn", "plans"), { recursive: true });
 
-  await writePlan(root, "p-bbbbbb", "Second plan", "2026-05-30T12:00:00+08:00");
-  await writePlan(root, "p-aaaaaa", "First plan", "2026-05-30T11:00:00+08:00");
+  await writePlan(root, "second-plan", "Second plan", "2026-05-30T12:00:00+08:00");
+  await writePlan(root, "first-plan", "First plan", "2026-05-30T11:00:00+08:00");
 
   const output = runHarn(root, "log");
 
   assert.match(output, /plans:/);
-  assert.ok(output.indexOf("id: p-aaaaaa") < output.indexOf("id: p-bbbbbb"));
+  assert.ok(output.indexOf("id: first-plan") < output.indexOf("id: second-plan"));
   assert.match(output, /retired:/);
   assert.match(output, /created:/);
 });

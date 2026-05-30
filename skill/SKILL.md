@@ -83,6 +83,14 @@ Do not create assumptions for ordinary implementation details such as local vari
 
 If unsure whether a statement should be a Harn assumption, read `references/assumptions.md`.
 
+## ID And Hash Rules
+
+- Write readable slug IDs, for example `single-active-workflow` or `support-multiple-workflows`.
+- Use readable assumption IDs in anchors and `depends_on`.
+- Do not write random-looking IDs like `a-xxxxxx` as assumption IDs.
+- Do not write or edit Harn hashes. Harn writes `hash` fields when assumptions are applied and lock hashes when plans are locked.
+- Do not edit files in `.harn/assumptions/` directly during normal work. Change assumption truth through a plan, then run `harn apply`.
+
 ## Valid Values
 
 Assumption `state`:

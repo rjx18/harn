@@ -40,11 +40,11 @@ Harn state lives in Git-tracked files under `.harn`.
 ```txt
 .harn/
   assumptions/
-    a-7k3p9x.yaml
-    a-8m2q1z.yaml
+    single-active-workflow.yaml
+    case-status-derived.yaml
 
   plans/
-    p-d4f8qa.yaml
+    support-multiple-workflows.yaml
 ```
 
 `.harn/assumptions/` contains the current ground-truth assumptions.
@@ -53,34 +53,39 @@ Harn state lives in Git-tracked files under `.harn`.
 
 Proposed assumptions do not go into `.harn/assumptions/` until a plan is applied.
 
-## 4. IDs
+## 4. IDs And Hashes
 
-Harn uses short random IDs instead of sequential IDs, because sequential IDs create merge conflicts in multi-author Git workflows.
+Harn uses human-readable slug IDs for assumptions and plans.
 
-Assumption IDs:
-
-```txt
-a-7k3p9x
-a-8m2q1z
-```
-
-Plan IDs:
+IDs are written by humans or agents:
 
 ```txt
-p-d4f8qa
-p-92ks0v
+single-active-workflow
+case-status-derived
+support-multiple-workflows
 ```
+
+Hashes are written by Harn:
+
+```txt
+a-7e7e69cd6688
+9f3a...
+```
+
+Agents may write IDs.
+
+Agents must not write hashes.
 
 Assumption files:
 
 ```txt
-.harn/assumptions/a-7k3p9x.yaml
+.harn/assumptions/single-active-workflow.yaml
 ```
 
 Plan files:
 
 ```txt
-.harn/plans/p-d4f8qa.yaml
+.harn/plans/support-multiple-workflows.yaml
 ```
 
 ## 5. Assumptions
@@ -114,11 +119,13 @@ A useful test:
 ### 5.1 Assumption File
 
 ```yaml
-id: a-7k3p9x
+id: single-active-workflow
+hash: a-7e7e69cd6688
 title: Single active workflow per case
 state: active
 statement: A case has at most one active workflow.
 depends_on: []
+created_by: bootstrap-workflow
 ```
 
 Supported states:
@@ -135,19 +142,20 @@ An assumption can depend on another assumption.
 Example:
 
 ```yaml
-id: a-8m2q1z
+id: case-status-derived
+hash: a-ce77fd8faca3
 title: Case status derives from active workflow
 state: active
 statement: Case status is derived from the active workflow.
 depends_on:
-  - a-7k3p9x
+  - single-active-workflow
 ```
 
 This means:
 
 ```txt
-a-8m2q1z depends-on a-7k3p9x
-a-7k3p9x is depended-by a-8m2q1z
+case-status-derived depends-on single-active-workflow
+single-active-workflow is depended-by case-status-derived
 ```
 
 If a plan retires an assumption, Harn checks assumptions that are depended-by that assumption.
@@ -164,6 +172,15 @@ retired
 If a dependent assumption is only reviewed, no anchor action is required for it.
 
 If a dependent assumption is retired, its anchors must be accounted for.
+
+Assumption `hash` is computed from immutable content:
+
+```txt
+title
+statement
+```
+
+It does not include mutable fields like `state`, `depends_on`, `created_by`, or `retired_by`.
 
 ## 7. Anchors
 
@@ -204,7 +221,7 @@ implementation details that can freely change
 Example:
 
 ```txt
-a-7k3p9x:workflow-guard
+single-active-workflow:workflow-guard
 ```
 
 The assumption ID identifies the rule.
@@ -216,23 +233,23 @@ Line numbers can move. The `ref` gives Harn a stable anchor identity across refa
 ### 7.2 Single-Line Anchor
 
 ```python
-if case.active_workflow_id is not None:  # harn:assume a-7k3p9x ref=workflow-guard
+if case.active_workflow_id is not None:  # harn:assume single-active-workflow ref=workflow-guard
     raise CaseAlreadyHasActiveWorkflowError(case.id)
 ```
 
 ### 7.3 Block Anchor
 
 ```python
-# harn:assume a-7k3p9x ref=workflow-guard
+# harn:assume single-active-workflow ref=workflow-guard
 if case.active_workflow_id is not None:
     raise CaseAlreadyHasActiveWorkflowError(case.id)
-# harn:end a-7k3p9x
+# harn:end single-active-workflow
 ```
 
 ### 7.4 Function-Level Anchor
 
 ```python
-# harn:assume a-7k3p9x ref=start-workflow scope=function
+# harn:assume single-active-workflow ref=start-workflow scope=function
 def start_workflow(case_id: str):
     ...
 ```
@@ -256,29 +273,29 @@ The plan must account for:
 ### 8.1 Plan File
 
 ```yaml
-id: p-d4f8qa
+id: support-multiple-workflows
 title: Support multiple active workflows
 
 assumptions:
   retire:
-    - id: a-7k3p9x
+    - id: single-active-workflow
       reason: Cases can now have multiple active workflows.
 
   create:
-    - id: a-f92ks0
+    - id: multiple-active-workflows
       title: Multiple active workflows per case
       statement: A case may have multiple active workflows.
       reason: Replacement model for case workflows.
       depends_on: []
 
   reviewed:
-    - id: a-8m2q1z
-      reason: It depends on a-7k3p9x.
+    - id: case-status-derived
+      reason: It depends on single-active-workflow.
       outcome: unchanged
       note: Case status already uses aggregate workflow state.
 
 anchors:
-  a-7k3p9x:
+  single-active-workflow:
     workflow-guard:
       action: remove
       reason: The guard rejects a second active workflow.
@@ -341,14 +358,14 @@ It checks:
 Example:
 
 ```bash
-harn plan check p-d4f8qa
+harn plan check support-multiple-workflows
 ```
 
 Example output:
 
 ```yaml
 plan:
-  id: p-d4f8qa
+  id: support-multiple-workflows
   title: Support multiple active workflows
   state: draft
 
@@ -356,34 +373,34 @@ result: valid
 
 assumptions:
   retire:
-    - a-7k3p9x
+    - single-active-workflow
   create:
-    - a-f92ks0
+    - multiple-active-workflows
   reviewed:
-    - a-8m2q1z
+    - case-status-derived
 
 anchors:
   accounted_for:
-    - a-7k3p9x:workflow-guard
-    - a-7k3p9x:timeline-display
-    - a-7k3p9x:status-report
+    - single-active-workflow:workflow-guard
+    - single-active-workflow:timeline-display
+    - single-active-workflow:status-report
 ```
 
 Invalid example:
 
 ```yaml
 plan:
-  id: p-d4f8qa
+  id: support-multiple-workflows
 
 result: invalid
 
 blocking:
   - type: missing_dependent_assumption
-    assumption: a-8m2q1z
-    reason: a-8m2q1z is depended-by retired assumption a-7k3p9x.
+    assumption: case-status-derived
+    reason: case-status-derived is depended-by retired assumption single-active-workflow.
 
   - type: missing_anchor_action
-    anchor: a-7k3p9x:status-report
+    anchor: single-active-workflow:status-report
     reason: Retired assumption anchors must have planned actions.
 ```
 
@@ -398,7 +415,7 @@ If code has already been written, Harn may still lock the plan, but the lock rec
 Example:
 
 ```bash
-harn plan lock p-d4f8qa
+harn plan lock support-multiple-workflows
 ```
 
 The lock is stored inside the plan file itself.
@@ -461,12 +478,12 @@ summary:
 ### 11.2 Find One Assumption
 
 ```bash
-harn find a-7k3p9x
+harn find single-active-workflow
 ```
 
 ```yaml
 assumption:
-  id: a-7k3p9x
+  id: single-active-workflow
   title: Single active workflow per case
   state: active
   statement: A case has at most one active workflow.
@@ -474,7 +491,7 @@ assumption:
 depends_on: []
 
 depended_by:
-  - id: a-8m2q1z
+  - id: case-status-derived
     title: Case status derives from active workflow
 
 anchors:
@@ -492,18 +509,18 @@ anchors:
 ### 11.3 Find Assumptions Depending On Another Assumption
 
 ```bash
-harn find --depended-by a-7k3p9x
+harn find --depended-by single-active-workflow
 ```
 
 ```yaml
 target:
-  id: a-7k3p9x
+  id: single-active-workflow
   title: Single active workflow per case
 
 depended_by:
   depth: 1
   assumptions:
-    - id: a-8m2q1z
+    - id: case-status-derived
       title: Case status derives from active workflow
       depth: 1
 ```
@@ -511,21 +528,21 @@ depended_by:
 With depth:
 
 ```bash
-harn find --depended-by a-7k3p9x --depth 2
+harn find --depended-by single-active-workflow --depth 2
 ```
 
 ```yaml
 target:
-  id: a-7k3p9x
+  id: single-active-workflow
   title: Single active workflow per case
 
 depended_by:
   depth: 2
   assumptions:
-    - id: a-8m2q1z
+    - id: case-status-derived
       title: Case status derives from active workflow
       depth: 1
-    - id: a-k29saa
+    - id: task-assignment-workflow
       title: SLA report derives from case status
       depth: 2
 ```
@@ -540,7 +557,7 @@ harn find --file backend/workflow.py
 file: backend/workflow.py
 
 anchors:
-  - assumption: a-7k3p9x
+  - assumption: single-active-workflow
     ref: workflow-guard
     line: 42
 ```
@@ -555,7 +572,7 @@ Find anchors touched by the current Git diff.
 
 ```yaml
 changed_anchors:
-  - assumption: a-7k3p9x
+  - assumption: single-active-workflow
     ref: workflow-guard
     file: backend/workflow.py
 ```
@@ -570,7 +587,7 @@ Find anchors touched by the staged Git diff.
 
 ```yaml
 staged_anchors:
-  - assumption: a-7k3p9x
+  - assumption: single-active-workflow
     ref: workflow-guard
     file: backend/workflow.py
 ```
@@ -578,27 +595,27 @@ staged_anchors:
 ### 11.7 Find Plan Scope
 
 ```bash
-harn find --plan p-d4f8qa
+harn find --plan support-multiple-workflows
 ```
 
 ```yaml
 plan:
-  id: p-d4f8qa
+  id: support-multiple-workflows
   title: Support multiple active workflows
 
 assumptions:
   retire:
-    - a-7k3p9x
+    - single-active-workflow
   create:
-    - a-f92ks0
+    - multiple-active-workflows
   reviewed:
-    - a-8m2q1z
+    - case-status-derived
 
 anchors:
-  - assumption: a-7k3p9x
+  - assumption: single-active-workflow
     ref: workflow-guard
     planned_action: remove
-  - assumption: a-7k3p9x
+  - assumption: single-active-workflow
     ref: timeline-display
     planned_action: change
 ```
@@ -610,7 +627,7 @@ anchors:
 Example:
 
 ```bash
-harn check p-d4f8qa
+harn check support-multiple-workflows
 ```
 
 It checks:
@@ -630,7 +647,7 @@ Example passing output:
 
 ```yaml
 plan:
-  id: p-d4f8qa
+  id: support-multiple-workflows
   title: Support multiple active workflows
 
 result: pass
@@ -639,15 +656,15 @@ diff:
   unplanned_anchored_assumptions: []
 
 anchors:
-  - anchor: a-7k3p9x:workflow-guard
+  - anchor: single-active-workflow:workflow-guard
     planned: remove
     actual: changed
     result: ok
-  - anchor: a-7k3p9x:timeline-display
+  - anchor: single-active-workflow:timeline-display
     planned: change
     actual: changed
     result: ok
-  - anchor: a-7k3p9x:status-report
+  - anchor: single-active-workflow:status-report
     planned: keep
     actual: unchanged
     result: ok
@@ -657,23 +674,23 @@ Example blocking output:
 
 ```yaml
 plan:
-  id: p-d4f8qa
+  id: support-multiple-workflows
 
 result: blocked
 
 blocking:
   - type: unplanned_anchor_touched
-    anchor: a-92ks0v:tenant-filter
+    anchor: tenant-filter-required:tenant-filter
     file: backend/query.py
     reason: The diff changed an anchored region not declared in the locked plan.
 
   - type: kept_anchor_changed
-    anchor: a-7k3p9x:status-report
+    anchor: single-active-workflow:status-report
     file: reports/status.sql
     reason: The plan marked this anchor as keep, but the diff changed it.
 
   - type: locked_plan_changed
-    plan: p-d4f8qa
+    plan: support-multiple-workflows
     reason: The plan content changed after it was locked.
 ```
 
@@ -684,7 +701,7 @@ blocking:
 Example:
 
 ```bash
-harn apply p-d4f8qa
+harn apply support-multiple-workflows
 ```
 
 `harn apply` always runs `harn check` first.
@@ -695,6 +712,7 @@ If the check passes, apply:
 
 - marks retired assumptions as `retired`
 - creates new active assumption files from the plan's `create` entries
+- writes Harn-generated `hash` values for created assumptions
 - leaves reviewed assumptions active
 - removes the plan's `lock` block
 - adds the plan's `applied` block
@@ -706,7 +724,7 @@ Example result:
 result: applied
 
 plan:
-  id: p-d4f8qa
+  id: support-multiple-workflows
   state: applied
 
 applied:
@@ -715,11 +733,11 @@ applied:
 
 assumptions:
   retired:
-    - a-7k3p9x
+    - single-active-workflow
   created:
-    - a-f92ks0
+    - multiple-active-workflows
   reviewed:
-    - a-8m2q1z
+    - case-status-derived
 ```
 
 Applied plans stay in `.harn/plans/`.
@@ -753,16 +771,16 @@ harn log
 
 ```yaml
 plans:
-  - id: p-d4f8qa
+  - id: support-multiple-workflows
     title: Support multiple active workflows
     applied_at: 2026-05-30T11:00:00+08:00
     commit: def456
     retired:
-      - a-7k3p9x
+      - single-active-workflow
     created:
-      - a-f92ks0
+      - multiple-active-workflows
     reviewed:
-      - a-8m2q1z
+      - case-status-derived
 
 ```
 

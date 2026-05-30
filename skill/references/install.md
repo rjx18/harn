@@ -73,7 +73,7 @@ cat > .git/hooks/post-commit <<'EOF'
 set -eu
 
 plan_id="$(git diff-tree --no-commit-id --name-only -r HEAD \
-  | sed -n 's#^\.harn/plans/\(p-[a-z0-9][a-z0-9]*\)\.yaml$#\1#p' \
+  | sed -n 's#^\.harn/plans/\([a-z][a-z0-9-]*\)\.yaml$#\1#p' \
   | head -n 1)"
 
 if [ -z "$plan_id" ]; then
@@ -106,4 +106,3 @@ Alternative follow-up flow:
 git add .harn/assumptions .harn/plans
 git commit -m "Apply Harn plan <plan-id>"
 ```
-
