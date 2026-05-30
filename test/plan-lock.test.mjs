@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { test } from "node:test";
 import { createLockFixture, runHarn } from "./support/fixtures.mjs";
 
@@ -24,4 +24,32 @@ test("harn plan lock warns when worktree is dirty", async () => {
 
   assert.match(output, /warnings:/);
   assert.match(output, /type: dirty_worktree_at_lock/);
+});
+
+test("harn plan lock ignores the draft plan file when checking dirtiness", async () => {
+  const root = await createLockFixture();
+  await writeFile(
+    `${root}/.harn/plans/bootstrap-runtime.yaml`,
+    [
+      "id: bootstrap-runtime",
+      "title: Bootstrap runtime",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py"
+    ].join("\n")
+  );
+
+  const output = runHarn(root, "plan", "lock", "bootstrap-runtime");
+  const plan = await readFile(`${root}/.harn/plans/bootstrap-runtime.yaml`, "utf8");
+
+  assert.match(output, /result: locked/);
+  assert.doesNotMatch(output, /dirty_worktree_at_lock/);
+  assert.match(plan, /dirty_at_lock: false/);
 });

@@ -3,7 +3,7 @@ import type { HarnPaths } from "../core/repo.js";
 import { planPath } from "../core/repo.js";
 import { hashPlanContent } from "../domain/plan-hash.js";
 import { parsePlan } from "../domain/plan.js";
-import { getHeadCommit, isWorktreeDirty } from "../git/status.js";
+import { getHeadCommit, isWorktreeDirtyExcept } from "../git/status.js";
 import { checkPlan } from "./plan-check.js";
 
 export interface PlanLockResult {
@@ -38,7 +38,7 @@ export async function lockPlan(paths: HarnPaths, planId: string): Promise<PlanLo
   const path = planPath(paths, planId);
   const rawPlan = await readYamlFile(path);
   const plan = parsePlan(rawPlan, path);
-  const dirtyAtLock = await isWorktreeDirty(paths.root);
+  const dirtyAtLock = await isWorktreeDirtyExcept(paths.root, [`.harn/plans/${planId}.yaml`]);
   const lock = {
     locked_at: new Date().toISOString(),
     base_commit: await getHeadCommit(paths.root),
