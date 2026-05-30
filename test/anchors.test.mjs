@@ -8,18 +8,18 @@ import { scanAnchors, scanAnchorText } from "../dist/anchors/scanner.js";
 
 test("finds single-line anchors", () => {
   const result = scanAnchorText(
-    "backend/workflow.py",
-    [
-      "if case.active_workflow_id is not None:  # harn:assume a-7k3p9x ref=workflow-guard",
+      "backend/workflow.py",
+      [
+      "if case.active_workflow_id is not None:  # harn:assume single-active-workflow ref=workflow-guard",
       "    raise CaseAlreadyHasActiveWorkflowError(case.id)"
     ].join("\n")
   );
 
   assert.equal(result.issues.length, 0);
   assert.deepEqual(result.anchors[0], {
-    assumptionId: "a-7k3p9x",
+    assumptionId: "single-active-workflow",
     ref: "workflow-guard",
-    identity: "a-7k3p9x:workflow-guard",
+    identity: "single-active-workflow:workflow-guard",
     file: "backend/workflow.py",
     startLine: 1,
     endLine: 1,
@@ -29,12 +29,12 @@ test("finds single-line anchors", () => {
 
 test("finds block anchors", () => {
   const result = scanAnchorText(
-    "backend/workflow.py",
-    [
-      "# harn:assume a-7k3p9x ref=workflow-guard",
+      "backend/workflow.py",
+      [
+      "# harn:assume single-active-workflow ref=workflow-guard",
       "if case.active_workflow_id is not None:",
       "    raise CaseAlreadyHasActiveWorkflowError(case.id)",
-      "# harn:end a-7k3p9x"
+      "# harn:end single-active-workflow"
     ].join("\n")
   );
 
@@ -46,9 +46,9 @@ test("finds block anchors", () => {
 
 test("recognizes function-level anchors", () => {
   const result = scanAnchorText(
-    "backend/workflow.py",
-    [
-      "# harn:assume a-7k3p9x ref=start-workflow scope=function",
+      "backend/workflow.py",
+      [
+      "# harn:assume single-active-workflow ref=start-workflow scope=function",
       "def start_workflow(case_id: str):",
       "    pass"
     ].join("\n")
@@ -60,7 +60,7 @@ test("recognizes function-level anchors", () => {
 });
 
 test("reports missing end markers", () => {
-  const result = scanAnchorText("backend/workflow.py", "# harn:assume a-7k3p9x ref=workflow-guard");
+  const result = scanAnchorText("backend/workflow.py", "# harn:assume single-active-workflow ref=workflow-guard");
 
   assert.equal(result.anchors.length, 0);
   assert.equal(result.issues[0].type, "missing_end");
@@ -69,8 +69,8 @@ test("reports missing end markers", () => {
 test("reports duplicate anchors across files", async () => {
   const root = await mkdtemp(join(tmpdir(), "harn-anchors-"));
   await mkdir(join(root, "backend"), { recursive: true });
-  await writeFile(join(root, "backend", "a.py"), "if active:  # harn:assume a-7k3p9x ref=workflow-guard");
-  await writeFile(join(root, "backend", "b.py"), "if active:  # harn:assume a-7k3p9x ref=workflow-guard");
+  await writeFile(join(root, "backend", "a.py"), "if active:  # harn:assume single-active-workflow ref=workflow-guard");
+  await writeFile(join(root, "backend", "b.py"), "if active:  # harn:assume single-active-workflow ref=workflow-guard");
 
   const result = await scanAnchors(root);
 

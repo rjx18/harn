@@ -11,8 +11,8 @@ export interface ParsedEndMarker {
   assumptionId: string;
 }
 
-const assumePattern = /harn:assume\s+(a-[a-z0-9]{6,})(?<attrs>[^\n]*)/;
-const endPattern = /harn:end\s+(a-[a-z0-9]{6,})/;
+const assumePattern = /harn:assume\s+([a-z][a-z0-9-]*)(?<attrs>[^\n]*)/;
+const endPattern = /harn:end\s+([a-z][a-z0-9-]*)/;
 
 export function parseAssumeMarker(line: string): ParsedAssumeMarker | undefined {
   const match = line.match(assumePattern);
