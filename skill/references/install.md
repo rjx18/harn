@@ -31,6 +31,32 @@ Verify:
 harn --help
 ```
 
+## Codex Global Instruction
+
+For Codex, install the Harn skill and add a standing global instruction so it is used automatically in Harn-enabled repos.
+
+Install the skill into Codex:
+
+```bash
+mkdir -p ~/.codex/skills/harn
+cp -R /path/to/harn/skill/. ~/.codex/skills/harn/
+```
+
+Then add this to `~/.codex/AGENTS.md` or your Codex global instructions file:
+
+```md
+When working in any repository that contains `.harn/`, always use the `harn` skill before making code changes.
+
+For code changes in Harn-enabled repos:
+1. Run `harn find`.
+2. Check related assumptions with `harn find --file <path>` and `harn find --depended-by <id> --depth 2`.
+3. Make or update a Harn plan before editing code.
+4. Run `harn plan check <plan-id>`.
+5. Lock the plan before implementation.
+6. Run `harn check <plan-id>` before committing.
+7. Apply the plan after commit when appropriate.
+```
+
 ## Initialize A Repo
 
 From the target repository:

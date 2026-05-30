@@ -1,6 +1,6 @@
 ---
 name: harn
-description: Use when working in a repository that uses Harn, or when installing, initializing, planning, locking, checking, applying, or debugging Harn assumption-impact workflows for agentic coding. Harn enforces that code changes match a locked assumption-impact plan using .harn files, anchors, Git diffs, pre-commit checks, and post-commit apply.
+description: Always use when a repository contains a .harn directory, harn anchors, harn plans, Harn assumptions, or when doing any code change in a repo that uses Harn. Use for planning, editing, checking, committing, installing, initializing, bootstrapping, locking, applying, or debugging Harn workflows.
 ---
 
 # Harn
