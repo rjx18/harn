@@ -51,6 +51,15 @@ test("harn find --plan shows plan scope", async () => {
   assert.match(output, /planned_action: remove/);
 });
 
+test("harn find suggests --plan when given a plan id", async () => {
+  const root = await createFindFixture();
+
+  assert.throws(
+    () => runHarn(root, "find", "support-multiple-workflows"),
+    /use harn find --plan support-multiple-workflows/
+  );
+});
+
 async function createFindFixture() {
   const root = await mkdtemp(join(tmpdir(), "harn-find-"));
   await mkdir(join(root, ".harn", "assumptions"), { recursive: true });

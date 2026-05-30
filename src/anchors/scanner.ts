@@ -1,9 +1,10 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { git } from "../git/exec.js";
 import { parseAssumeMarker, parseEndMarker, type ParsedAssumeMarker } from "./parser.js";
 import type { Anchor, AnchorIssue, AnchorScanResult } from "./types.js";
 
-const ignoredDirectories = new Set([".git", ".harn", "node_modules", "dist", "tmp"]);
+const internalDirectories = new Set([".git", ".harn"]);
 
 interface OpenBlock {
   marker: ParsedAssumeMarker;
@@ -110,13 +111,18 @@ export function scanAnchorText(file: string, content: string): AnchorScanResult 
 }
 
 async function listSourceFiles(root: string): Promise<string[]> {
+  const gitFiles = await listGitVisibleFiles(root);
+  if (gitFiles) {
+    return gitFiles;
+  }
+
   const files: string[] = [];
 
   async function walk(dir: string): Promise<void> {
     const entries = await readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
-      if (ignoredDirectories.has(entry.name)) {
+      if (internalDirectories.has(entry.name)) {
         continue;
       }
 
@@ -131,6 +137,23 @@ async function listSourceFiles(root: string): Promise<string[]> {
 
   await walk(root);
   return files;
+}
+
+async function listGitVisibleFiles(root: string): Promise<string[] | undefined> {
+  try {
+    const output = await git(root, ["ls-files", "--cached", "--others", "--exclude-standard"]);
+    return output
+      .split(/\r?\n/)
+      .map((file) => file.trim())
+      .filter((file) => file !== "" && !isInternalPath(file))
+      .map((file) => join(root, file));
+  } catch {
+    return undefined;
+  }
+}
+
+function isInternalPath(file: string): boolean {
+  return file === ".git" || file.startsWith(".git/") || file === ".harn" || file.startsWith(".harn/");
 }
 
 function makeAnchor(

@@ -37,7 +37,7 @@ export async function findHarn(paths: HarnPaths, options: FindOptions): Promise<
   }
 
   if (options.assumptionId) {
-    return findAssumption(project.assumptions, scan.anchors, options.assumptionId);
+    return findAssumption(project, scan.anchors, options.assumptionId);
   }
 
   return {
@@ -60,8 +60,16 @@ async function findChangedAnchors(root: string, anchors: Anchor[], staged: boole
   return staged ? { staged_anchors: touched } : { changed_anchors: touched };
 }
 
-function findAssumption(assumptions: Assumption[], anchors: Anchor[], assumptionId: string): unknown {
-  const assumption = requireAssumption(assumptions, assumptionId);
+function findAssumption(project: HarnProject, anchors: Anchor[], assumptionId: string): unknown {
+  const assumption = project.assumptions.find((candidate) => candidate.id === assumptionId);
+  if (!assumption) {
+    const plan = project.plans.find((candidate) => candidate.id === assumptionId);
+    if (plan) {
+      throw new HarnError(`Assumption not found: ${assumptionId}. A plan with this id exists; use harn find --plan ${assumptionId}.`);
+    }
+
+    throw new HarnError(`Assumption not found: ${assumptionId}`);
+  }
 
   return {
     assumption: {
@@ -71,7 +79,7 @@ function findAssumption(assumptions: Assumption[], anchors: Anchor[], assumption
       statement: assumption.statement
     },
     depends_on: assumption.depends_on,
-    depended_by: assumptions
+    depended_by: project.assumptions
       .filter((candidate) => candidate.depends_on.includes(assumption.id))
       .map((candidate) => ({ id: candidate.id, title: candidate.title })),
     anchors: anchors

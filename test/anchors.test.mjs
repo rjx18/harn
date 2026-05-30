@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -76,4 +77,21 @@ test("reports duplicate anchors across files", async () => {
 
   assert.equal(result.anchors.length, 2);
   assert.equal(result.issues[0].type, "duplicate_anchor");
+});
+
+test("scanAnchors respects gitignore", async () => {
+  const root = await mkdtemp(join(tmpdir(), "harn-gitignore-"));
+  await mkdir(join(root, "backend"), { recursive: true });
+  await mkdir(join(root, ".next", "server", "app"), { recursive: true });
+  await writeFile(join(root, ".gitignore"), ".next/\n");
+  await writeFile(join(root, "backend", "workflow.py"), "print('no anchors')\n");
+  await writeFile(
+    join(root, ".next", "server", "app", "page.js"),
+    "if active:  # harn:assume stale-generated-anchor ref=generated\n"
+  );
+  execFileSync("git", ["init"], { cwd: root });
+
+  const result = await scanAnchors(root);
+
+  assert.equal(result.anchors.length, 0);
 });

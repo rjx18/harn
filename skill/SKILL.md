@@ -72,6 +72,14 @@ If there is large uncommitted scaffold work, stop and ask whether to commit it f
 
 An assumption is a tracked statement that code depends on.
 
+Default shape:
+
+```txt
+<subject> must/does <behavior> when/for <context> because/so <reason or consequence>.
+```
+
+Use the shape to force clarity, but keep the sentence natural.
+
 Create or update a Harn assumption only when this is true:
 
 > If this statement changes, at least one known code location, test, query, schema, or API shape should be reviewed.

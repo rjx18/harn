@@ -6,6 +6,34 @@ An assumption is a tracked statement that code depends on.
 
 It can be high-level or low-level. The important test is cognitive load: if a future agent could easily break the rule without realizing it, and a known code location should be reviewed when the rule changes, it can be a Harn assumption.
 
+## Assumption Statement Contract
+
+Use this default shape:
+
+```txt
+<subject> must/does <behavior> when/for <context> because/so <reason or consequence>.
+```
+
+The sentence does not need to be mechanical, but it should answer:
+
+```txt
+what owns or performs the behavior
+what behavior must remain true
+when or where it applies
+why it matters, or what breaks if changed
+```
+
+Examples:
+
+```txt
+Cases must reject a second active workflow because downstream status logic assumes one active workflow.
+Invoice totals are stored in cents so arithmetic avoids floating-point rounding.
+The terminal renderer owns the command and output regions after hydration because terminal.js writes command IO there.
+The hero background moves with a parallax effect while the intro section scrolls because the page relies on scroll-position animation.
+The commit detail panel refreshes when a graph milestone is selected so milestone state stays visible to the user.
+GSAP must load before page animation scripts execute because those scripts register ScrollTrigger animations at startup.
+```
+
 A good assumption is:
 
 ```txt
