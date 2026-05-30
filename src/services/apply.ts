@@ -3,12 +3,27 @@ import type { HarnPaths } from "../core/repo.js";
 import { assumptionPath, planPath } from "../core/repo.js";
 import { parseAssumption } from "../domain/assumption.js";
 import { hashAssumptionContent } from "../domain/assumption-hash.js";
-import { parsePlan } from "../domain/plan.js";
+import { getPlanState, parsePlan } from "../domain/plan.js";
+import { loadHarnProject } from "../domain/project.js";
 import { checkDiff } from "./check.js";
 
 export async function applyPlan(paths: HarnPaths, planId?: string): Promise<unknown> {
   const check = await checkDiff(paths, { planId });
   if (check.result !== "pass") {
+    const stagedCheck = await checkDiff(paths, { planId, staged: true });
+    const stagedPlan = stagedCheck.plan
+      ? (await loadHarnProject(paths)).plans.find((candidate) => candidate.id === stagedCheck.plan?.id)
+      : undefined;
+    if (stagedCheck.result === "pass" && stagedCheck.plan && stagedPlan && getPlanState(stagedPlan) === "applied") {
+      return {
+        result: "already_applied",
+        plan: {
+          id: stagedCheck.plan.id,
+          state: "applied"
+        }
+      };
+    }
+
     return {
       result: "blocked",
       ...(planId ? { plan: { id: planId } } : {}),

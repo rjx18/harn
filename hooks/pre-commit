@@ -2,3 +2,6 @@
 set -eu
 
 harn check --staged
+harn apply
+git add .harn
+harn check --staged
