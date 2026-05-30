@@ -1,7 +1,11 @@
 export function isAssumptionId(value: string): boolean {
-  return /^a-[a-z0-9]{6,}$/.test(value);
+  return isSlugId(value);
 }
 
 export function isPlanId(value: string): boolean {
-  return /^p-[a-z0-9]{6,}$/.test(value);
+  return isSlugId(value);
+}
+
+export function isSlugId(value: string): boolean {
+  return /^[a-z][a-z0-9-]*$/.test(value);
 }

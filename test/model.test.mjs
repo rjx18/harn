@@ -11,14 +11,14 @@ import { loadHarnProject } from "../dist/domain/project.js";
 
 test("parses a valid assumption", () => {
   const assumption = parseAssumption({
-    id: "a-7k3p9x",
+    id: "single-active-workflow",
     title: "Single active workflow",
     state: "active",
     statement: "A case has at most one active workflow.",
     depends_on: []
   });
 
-  assert.equal(assumption.id, "a-7k3p9x");
+  assert.equal(assumption.id, "single-active-workflow");
   assert.equal(assumption.state, "active");
 });
 
@@ -38,7 +38,7 @@ test("rejects an invalid assumption id", () => {
 
 test("derives plan state from lock and applied blocks", () => {
   const draft = parsePlan({
-    id: "p-d4f8qa",
+    id: "support-multiple-workflows",
     title: "Support multiple active workflows",
     assumptions: {},
     files: ["backend/workflow.py"]
@@ -63,7 +63,7 @@ test("rejects a plan with lock and applied blocks", () => {
   assert.throws(
     () =>
       parsePlan({
-        id: "p-d4f8qa",
+        id: "support-multiple-workflows",
         title: "Support multiple active workflows",
         assumptions: {},
         files: ["backend/workflow.py"],
@@ -88,9 +88,9 @@ test("loads assumptions and plans from .harn", async () => {
   await mkdir(paths.plansDir, { recursive: true });
 
   await writeFile(
-    join(paths.assumptionsDir, "a-7k3p9x.yaml"),
+    join(paths.assumptionsDir, "single-active-workflow.yaml"),
     [
-      "id: a-7k3p9x",
+      "id: single-active-workflow",
       "title: Single active workflow",
       "state: active",
       "statement: A case has at most one active workflow.",
@@ -99,8 +99,8 @@ test("loads assumptions and plans from .harn", async () => {
   );
 
   await writeFile(
-    join(paths.plansDir, "p-d4f8qa.yaml"),
-    ["id: p-d4f8qa", "title: Support multiple active workflows", "assumptions: {}", "files: []"].join("\n")
+    join(paths.plansDir, "support-multiple-workflows.yaml"),
+    ["id: support-multiple-workflows", "title: Support multiple active workflows", "assumptions: {}", "files: []"].join("\n")
   );
 
   const project = await loadHarnProject(paths);

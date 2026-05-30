@@ -25,7 +25,7 @@ export function parseAssumption(value: unknown, source = "assumption"): Assumpti
   const dependsOn = getStringArray(record, "depends_on", issues);
 
   if (id && !isAssumptionId(id)) {
-    issues.push("id must look like a-xxxxxx.");
+    issues.push("id must be a readable slug.");
   }
 
   if (state && !assumptionStates.has(state as AssumptionState)) {

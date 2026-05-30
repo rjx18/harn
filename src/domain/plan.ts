@@ -93,7 +93,7 @@ export function parsePlan(value: unknown, source = "plan"): Plan {
   const applied = parseApplied(record["applied"], `${source}.applied`, issues);
 
   if (id && !isPlanId(id)) {
-    issues.push("id must look like p-xxxxxx.");
+    issues.push("id must be a readable slug.");
   }
 
   if (lock && applied) {
@@ -265,6 +265,6 @@ function asRecordForIssues(value: unknown, label: string, issues: string[]): Rec
 
 function validateAssumptionId(id: string, label: string, issues: string[]): void {
   if (id && !isAssumptionId(id)) {
-    issues.push(`${label} must look like a-xxxxxx.`);
+    issues.push(`${label} must be a readable slug.`);
   }
 }
