@@ -9,6 +9,8 @@ Harn is a repo-native guardrail for agentic coding.
 
 Use Harn to ensure code changes match a predeclared assumption-impact plan.
 
+Harn is not a work log. Harn is a pre-change contract between intended assumption impact and the actual Git diff.
+
 Source of truth:
 
 ```txt
@@ -19,6 +21,17 @@ git diff           = what actually changed
 ```
 
 ## Required Workflow
+
+Before starting, check Git baseline:
+
+```bash
+git status --short
+git rev-parse --is-inside-work-tree
+```
+
+If the repo is not a Git repo, initialize Git and create a baseline commit before Harn planning unless the human explicitly says this is a bootstrap/baseline operation.
+
+If there is large uncommitted scaffold work, stop and ask whether to commit it first. Do not use a dirty lock to explain already-written work unless the human explicitly accepts that risk.
 
 1. Explore existing assumptions.
    - Run `harn find`.
@@ -38,6 +51,7 @@ git diff           = what actually changed
 4. Lock the plan.
    - Run `harn plan lock <plan-id>`.
    - Do not implement before the plan is locked unless explicitly asked.
+   - If the lock says `dirty_at_lock: true`, report this to the human before continuing.
 
 5. Implement the code change.
    - Keep edits within the locked plan.
@@ -82,6 +96,10 @@ tenant/security boundaries
 Do not create assumptions for ordinary implementation details such as local variable names, minor layout choices, generic helper structure, obvious type conversions, or temporary implementation choices.
 
 If unsure whether a statement should be a Harn assumption, read `references/assumptions.md`.
+
+Frontend assumptions can be detailed. They should describe UI/runtime contracts with cognitive load, not inert markup trivia.
+
+Good frontend assumptions include animation behavior, script/load ordering, runtime DOM ownership, generated content mounts, refresh/update relationships, responsive behavior, accessibility contracts, routing/state persistence, and integration contracts between old scripts and new components.
 
 ## ID And Hash Rules
 
@@ -134,6 +152,16 @@ change
 remove
 keep
 ```
+
+Action meanings:
+
+```txt
+change = this anchored region is expected to change
+remove = this anchored region or assumption dependency is expected to be removed
+keep   = this anchored region must not change at all
+```
+
+Adding or moving a Harn comment inside an anchored region is still a change. Do not use `keep` if you will touch that region for any reason.
 
 Plan-check results:
 
@@ -196,10 +224,13 @@ If `harn check` blocks, either fix the code to match the locked plan or update a
 ## Agent Rules
 
 - Use `harn find` before planning implementation.
+- Use `harn find --plan <plan-id>` for plan scope. `harn find <id>` is for assumption IDs.
 - Review all linked and depended-by assumptions before locking a plan.
 - Do not edit code first and invent the plan afterward.
 - Do not silently edit a locked plan while coding.
-- If implementation reveals new scope, stop, update the plan, run `harn plan check`, and re-lock.
+- Never edit a locked plan to fit implementation already done.
+- If a locked plan is wrong, stop and create a replacement plan or ask the human whether to abandon/delete the bad plan.
+- If implementation reveals new scope before coding continues, stop, update or replace the plan, run `harn plan check`, and lock again.
 - Trust Harn output over remembered context.
 
 If context is compacted or lost, recover with:
