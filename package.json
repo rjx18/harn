@@ -1,6 +1,6 @@
 {
   "name": "harn",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Repo-native guardrails for agentic coding.",
   "type": "module",
   "bin": {
