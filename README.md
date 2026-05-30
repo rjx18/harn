@@ -37,3 +37,25 @@ The hook runs:
 ```bash
 harn check --staged
 ```
+
+## Claude Code Skill
+
+This repo also includes a Claude Code plugin that bundles the Harn skill.
+
+Test it locally:
+
+```bash
+claude --plugin-dir .
+```
+
+Then invoke:
+
+```txt
+/harn:harn
+```
+
+Before submitting to the Claude Code community marketplace:
+
+```bash
+claude plugin validate .
+```
