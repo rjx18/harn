@@ -5,9 +5,9 @@ import { applyPlan } from "../services/apply.js";
 
 export function registerApplyCommand(program: Command): void {
   program
-    .command("apply <planId>")
+    .command("apply [planId]")
     .description("Apply a valid locked plan to assumption truth.")
-    .action(async (planId: string) => {
+    .action(async (planId: string | undefined) => {
       const root = findRepoRoot();
       const result = await applyPlan(getHarnPaths(root), planId);
       printYaml(result);

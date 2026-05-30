@@ -55,3 +55,58 @@ test("harn apply does not mutate when check is blocked", async () => {
   assert.match(output, /result: blocked/);
   assert.match(assumption, /state: active/);
 });
+
+test("harn apply infers the single locked plan", async () => {
+  const root = await createLockFixture();
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
+
+  const output = runHarn(root, "apply");
+  const appliedPlan = await readFile(`${root}/.harn/plans/support-multiple-workflows.yaml`, "utf8");
+
+  assert.match(output, /result: applied/);
+  assert.match(output, /id: support-multiple-workflows/);
+  assert.doesNotMatch(appliedPlan, /lock:/);
+  assert.match(appliedPlan, /applied:/);
+});
+
+test("harn apply blocks without a locked plan to infer", async () => {
+  const root = await createLockFixture();
+
+  const output = runHarnFailure(root, "apply");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /locked_plan_not_found/);
+});
+
+test("harn apply blocks when multiple locked plans exist and no id is provided", async () => {
+  const root = await createLockFixture();
+  await writeFile(
+    `${root}/.harn/plans/review-workflow.yaml`,
+    [
+      "id: review-workflow",
+      "title: Review workflow assumption",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py"
+    ].join("\n")
+  );
+  execFileSync("git", ["add", "."], { cwd: root });
+  execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add second plan"], {
+    cwd: root
+  });
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
+  runHarn(root, "plan", "lock", "review-workflow");
+
+  const output = runHarnFailure(root, "apply");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /locked_plan_not_found/);
+});

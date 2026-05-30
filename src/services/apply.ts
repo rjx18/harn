@@ -7,18 +7,31 @@ import { parsePlan } from "../domain/plan.js";
 import { getHeadCommit } from "../git/status.js";
 import { checkDiff } from "./check.js";
 
-export async function applyPlan(paths: HarnPaths, planId: string): Promise<unknown> {
+export async function applyPlan(paths: HarnPaths, planId?: string): Promise<unknown> {
   const check = await checkDiff(paths, { planId });
   if (check.result !== "pass") {
     return {
       result: "blocked",
-      plan: { id: planId },
+      ...(planId ? { plan: { id: planId } } : {}),
       blocking: check.blocking
     };
   }
 
-  const rawPlan = (await readYamlFile(planPath(paths, planId))) as Record<string, unknown>;
-  const plan = parsePlan(rawPlan, planPath(paths, planId));
+  const resolvedPlanId = check.plan?.id;
+  if (!resolvedPlanId) {
+    return {
+      result: "blocked",
+      blocking: [
+        {
+          type: "locked_plan_not_found",
+          reason: "Provide a plan id or keep exactly one locked plan in .harn/plans."
+        }
+      ]
+    };
+  }
+
+  const rawPlan = (await readYamlFile(planPath(paths, resolvedPlanId))) as Record<string, unknown>;
+  const plan = parsePlan(rawPlan, planPath(paths, resolvedPlanId));
 
   for (const action of plan.assumptions.retire) {
     const path = assumptionPath(paths, action.id);
