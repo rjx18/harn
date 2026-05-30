@@ -2,10 +2,18 @@
 
 ## Install
 
-If Harn is available:
+Recommended install for normal repo work and Git hooks:
 
 ```bash
+npm install -g @richhardry/harn
 harn --help
+```
+
+One-off use without installing:
+
+```bash
+npx @richhardry/harn --help
+npx @richhardry/harn <command>
 ```
 
 If using the local Harn repo:
@@ -21,13 +29,6 @@ Verify:
 
 ```bash
 harn --help
-```
-
-When published to npm:
-
-```bash
-npx harn --help
-npx harn <command>
 ```
 
 ## Initialize A Repo

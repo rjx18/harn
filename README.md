@@ -7,14 +7,18 @@ The MVP behavior is defined in `SPEC.md`.
 Agents write readable IDs such as `single-active-workflow`.
 Harn writes integrity hashes when plans are locked or applied.
 
+Install globally when you want `harn` available for hooks and normal repo work:
+
 ```bash
-npx harn --help
+npm install -g @richhardry/harn
+harn --help
 ```
 
-When published to npm, Harn can be run without a project install:
+Run without installing for one-off use:
 
 ```bash
-npx harn <command>
+npx @richhardry/harn --help
+npx @richhardry/harn <command>
 ```
 
 ## Pre-Commit Hook
