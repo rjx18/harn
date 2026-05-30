@@ -1,11 +1,13 @@
 import { readYamlFile } from "../core/yaml.js";
+import { hashAssumptionContent } from "./assumption-hash.js";
 import { isAssumptionId } from "./ids.js";
-import { asRecord, failIfIssues, getRequiredString, getStringArray } from "./validation.js";
+import { asRecord, failIfIssues, getOptionalString, getRequiredString, getStringArray } from "./validation.js";
 
 export type AssumptionState = "active" | "retired";
 
 export interface Assumption {
   id: string;
+  hash?: string;
   title: string;
   state: AssumptionState;
   statement: string;
@@ -19,6 +21,7 @@ export function parseAssumption(value: unknown, source = "assumption"): Assumpti
   const issues: string[] = [];
 
   const id = getRequiredString(record, "id", issues);
+  const hash = getOptionalString(record, "hash", issues);
   const title = getRequiredString(record, "title", issues);
   const state = getRequiredString(record, "state", issues);
   const statement = getRequiredString(record, "statement", issues);
@@ -38,10 +41,16 @@ export function parseAssumption(value: unknown, source = "assumption"): Assumpti
     }
   }
 
+  const expectedHash = title && statement ? hashAssumptionContent({ title, statement }) : undefined;
+  if (hash && expectedHash && hash !== expectedHash) {
+    issues.push(`hash must match immutable title and statement content; expected ${expectedHash}.`);
+  }
+
   failIfIssues(source, issues);
 
   return {
     id,
+    ...(hash ? { hash } : {}),
     title,
     state: state as AssumptionState,
     statement,
