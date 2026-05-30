@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -21,7 +22,23 @@ test("harn log lists applied plans in order", async () => {
   assert.match(output, /created:/);
 });
 
-async function writePlan(root, id, title, appliedAt) {
+test("harn log computes applied plan commit from git history", async () => {
+  const root = await mkdtemp(join(tmpdir(), "harn-log-"));
+  await mkdir(join(root, ".harn", "plans"), { recursive: true });
+  await writePlan(root, "bootstrap-runtime", "Bootstrap runtime", "2026-05-30T11:00:00+08:00", false);
+  execFileSync("git", ["init"], { cwd: root });
+  execFileSync("git", ["add", "."], { cwd: root });
+  execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "apply plan"], {
+    cwd: root
+  });
+  const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+  const output = runHarn(root, "log");
+
+  assert.match(output, new RegExp(`commit: ${commit}`));
+});
+
+async function writePlan(root, id, title, appliedAt, includeCommit = true) {
   await writeFile(
     join(root, ".harn", "plans", `${id}.yaml`),
     [
@@ -38,7 +55,7 @@ async function writePlan(root, id, title, appliedAt) {
       "  - backend/workflow.py",
       "applied:",
       `  applied_at: ${appliedAt}`,
-      "  commit: abc123"
+      ...(includeCommit ? ["  commit: abc123"] : [])
     ].join("\n")
   );
 }

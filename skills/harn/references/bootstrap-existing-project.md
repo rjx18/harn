@@ -253,7 +253,8 @@ Preferred order:
 3. Run `harn plan lock <plan-id>`.
 4. Add source anchors listed in the plan.
 5. Run `harn check <plan-id>`.
-6. Run `harn apply <plan-id>`.
+6. Stage the code, anchors, and locked plan.
+7. Commit normally and let the Harn pre-commit hook apply, restage `.harn`, and recheck.
 ```
 
 If `harn plan lock` reports `dirty_at_lock: true`, stop and tell the human before continuing.

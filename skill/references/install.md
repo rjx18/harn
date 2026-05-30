@@ -77,7 +77,7 @@ Commit `.harn` files with the code changes they justify.
 
 ## Recommended Hook Setup
 
-Use Harn as both a pre-commit and post-commit gate.
+Use Harn as a pre-commit gate.
 
 Install the pre-commit hook:
 
@@ -90,46 +90,9 @@ The pre-commit hook runs:
 
 ```bash
 harn check --staged
+harn apply
+git add .harn
+harn check --staged
 ```
 
-Install a post-commit hook:
-
-```bash
-cat > .git/hooks/post-commit <<'EOF'
-#!/usr/bin/env sh
-set -eu
-
-plan_id="$(git diff-tree --no-commit-id --name-only -r HEAD \
-  | sed -n 's#^\.harn/plans/\([a-z][a-z0-9-]*\)\.yaml$#\1#p' \
-  | head -n 1)"
-
-if [ -z "$plan_id" ]; then
-  exit 0
-fi
-
-harn apply "$plan_id"
-
-if ! git diff --quiet -- .harn; then
-  echo "Harn applied $plan_id."
-  echo "Review .harn changes, then amend or create a follow-up commit."
-fi
-EOF
-
-chmod +x .git/hooks/post-commit
-```
-
-The post-commit hook should not auto-amend commits. After it applies Harn state, explicitly amend or create a follow-up commit.
-
-Preferred amend flow:
-
-```bash
-git add .harn/assumptions .harn/plans
-git commit --amend --no-edit
-```
-
-Alternative follow-up flow:
-
-```bash
-git add .harn/assumptions .harn/plans
-git commit -m "Apply Harn plan <plan-id>"
-```
+The hook creates one commit containing the code change, applied plan, and generated assumption truth. Do not install a post-commit Harn apply hook for normal work.

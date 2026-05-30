@@ -57,16 +57,14 @@ If there is large uncommitted scaffold work, stop and ask whether to commit it f
    - Keep edits within the locked plan.
    - During implementation, use `harn find --changed`, `harn find --staged`, and `harn find --plan <plan-id>` to verify scope.
 
-6. Check before commit.
+6. Commit through the Harn pre-commit hook.
    - Run `harn check <plan-id>`.
    - Stage files.
-   - The pre-commit hook should run `harn check --staged`.
+   - The pre-commit hook should run `harn check --staged`, `harn apply`, `git add .harn`, then `harn check --staged` again.
 
-7. Commit the implementation.
-
-8. Apply the plan after commit.
-   - The post-commit hook should run `harn apply <plan-id>`.
-   - If `.harn` files change, amend the commit or create a follow-up commit according to repo practice.
+7. Commit once.
+   - The commit should contain the code change, applied plan, and generated assumption truth.
+   - Do not use a post-commit Harn apply flow for normal work.
 
 ## Assumption Rule Of Thumb
 
@@ -218,18 +216,18 @@ harn plan check <plan-id>
 harn plan lock <plan-id>
 harn check <plan-id>
 harn check --staged
-harn apply <plan-id>
+harn apply [plan-id]
 harn log
 ```
 
 ## Check Behavior
 
-`harn check` verifies the Git diff against the locked plan.
+`harn check` verifies the Git diff against the locked plan. `harn check --staged` also accepts valid applied staged Harn state produced by `harn apply`.
 
 It checks:
 
 ```txt
-plan is locked
+plan is locked, or staged Harn state is already applied and valid
 plan hash still matches
 changed files are listed in the plan
 changed anchored regions are listed in the plan

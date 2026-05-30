@@ -422,6 +422,8 @@ The normal flow is to lock the plan before code is written.
 
 If code has already been written, Harn may still lock the plan, but the lock records that it was created with a dirty worktree. This is allowed, but Harn must warn that the plan was backfilled after implementation started.
 
+The current plan file itself does not count as dirty when it is being locked. A new draft plan must be writable before it can be locked.
+
 Example:
 
 ```bash
@@ -706,7 +708,7 @@ blocking:
 
 ## 13. Applying A Plan
 
-`harn apply <plan-id>` updates `.harn/assumptions/` from a valid locked plan.
+`harn apply [plan-id]` updates `.harn/assumptions/` from a valid locked plan. If no plan ID is provided, Harn applies the single locked plan.
 
 Example:
 
@@ -739,7 +741,6 @@ plan:
 
 applied:
   applied_at: 2026-05-30T11:00:00+08:00
-  commit: def456
 
 assumptions:
   retired:
@@ -773,6 +774,8 @@ It derives the log from applied plan files in `.harn/plans/`.
 
 Harn does not need a separate log file for MVP.
 
+Applied plans do not store the commit hash of the commit that contains them. That would create a Git hash recursion problem. `harn log` computes the commit from Git history when the repository has the relevant history available.
+
 Example:
 
 ```bash
@@ -800,9 +803,12 @@ Harn should support a pre-commit hook that runs:
 
 ```bash
 harn check --staged
+harn apply
+git add .harn
+harn check --staged
 ```
 
-The hook blocks commits when staged changes do not match a locked plan.
+The hook blocks commits when staged changes do not match a locked plan. When the staged implementation is valid, the hook applies the plan, restages `.harn`, validates the applied staged state, and allows one commit containing code plus Harn truth.
 
 The hook should catch:
 
@@ -811,6 +817,7 @@ The hook should catch:
 - staged changes to anchors marked `keep`
 - direct staged edits to ground-truth assumptions that were not produced by apply
 - locked plans that changed after locking
+- applied Harn state that does not match the plan
 
 ## 16. Command Set
 
@@ -830,7 +837,7 @@ harn plan check <plan-id>
 harn plan lock <plan-id>
 harn check <plan-id>
 harn check --staged
-harn apply <plan-id>
+harn apply [plan-id]
 harn log
 ```
 

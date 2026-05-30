@@ -36,7 +36,12 @@ The hook runs:
 
 ```bash
 harn check --staged
+harn apply
+git add .harn
+harn check --staged
 ```
+
+This creates a one-commit Harn flow: the commit contains the code change, applied plan, and generated assumption truth. No post-commit hook is required.
 
 ## Claude Code Skill
 
