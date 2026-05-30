@@ -59,6 +59,7 @@ async function createGitFixture() {
     join(root, ".harn", "assumptions", "single-active-workflow.yaml"),
     [
       "id: single-active-workflow",
+      "hash: a-7e7e69cd6688",
       "title: Single active workflow per case",
       "state: active",
       "statement: A case has at most one active workflow.",

@@ -6,12 +6,17 @@ import { mkdtemp } from "node:fs/promises";
 import { test } from "node:test";
 import { getHarnPaths } from "../dist/core/repo.js";
 import { parseAssumption } from "../dist/domain/assumption.js";
+import { hashAssumptionContent } from "../dist/domain/assumption-hash.js";
 import { getPlanState, parsePlan } from "../dist/domain/plan.js";
 import { loadHarnProject } from "../dist/domain/project.js";
 
 test("parses a valid assumption", () => {
   const assumption = parseAssumption({
     id: "single-active-workflow",
+    hash: hashAssumptionContent({
+      title: "Single active workflow",
+      statement: "A case has at most one active workflow."
+    }),
     title: "Single active workflow",
     state: "active",
     statement: "A case has at most one active workflow.",
@@ -91,6 +96,7 @@ test("loads assumptions and plans from .harn", async () => {
     join(paths.assumptionsDir, "single-active-workflow.yaml"),
     [
       "id: single-active-workflow",
+      "hash: a-725c00db169c",
       "title: Single active workflow",
       "state: active",
       "statement: A case has at most one active workflow.",

@@ -45,3 +45,18 @@ test("rejects a mismatched assumption hash", () => {
       Array.isArray(error.issues) && error.issues.some((issue) => issue.includes("hash must match"))
   );
 });
+
+test("rejects an active assumption without a hash", () => {
+  assert.throws(
+    () =>
+      parseAssumption({
+        id: "single-active-workflow",
+        title: "Single active workflow",
+        state: "active",
+        statement: "A case has at most one active workflow.",
+        depends_on: []
+      }),
+    (error) =>
+      Array.isArray(error.issues) && error.issues.some((issue) => issue.includes("must include a Harn-generated hash"))
+  );
+});

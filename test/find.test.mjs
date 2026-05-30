@@ -61,6 +61,7 @@ async function createFindFixture() {
     join(root, ".harn", "assumptions", "single-active-workflow.yaml"),
     [
       "id: single-active-workflow",
+      "hash: a-7e7e69cd6688",
       "title: Single active workflow per case",
       "state: active",
       "statement: A case has at most one active workflow.",
@@ -72,6 +73,7 @@ async function createFindFixture() {
     join(root, ".harn", "assumptions", "case-status-derived.yaml"),
     [
       "id: case-status-derived",
+      "hash: a-ce77fd8faca3",
       "title: Case status derives from active workflow",
       "state: active",
       "statement: Case status is derived from the active workflow.",

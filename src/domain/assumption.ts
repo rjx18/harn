@@ -42,6 +42,10 @@ export function parseAssumption(value: unknown, source = "assumption"): Assumpti
   }
 
   const expectedHash = title && statement ? hashAssumptionContent({ title, statement }) : undefined;
+  if (state === "active" && !hash) {
+    issues.push("active assumptions must include a Harn-generated hash.");
+  }
+
   if (hash && expectedHash && hash !== expectedHash) {
     issues.push(`hash must match immutable title and statement content; expected ${expectedHash}.`);
   }

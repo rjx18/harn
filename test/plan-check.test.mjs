@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -135,6 +136,8 @@ async function createPlanWithCreatedAnchorFixture() {
 }
 
 async function writeAssumption(root, id, title, dependsOn) {
+  const statement = `${title}.`;
+  const hash = hashAssumptionContent(title, statement);
   const dependsOnLines =
     dependsOn.length === 0 ? ["depends_on: []"] : ["depends_on:", ...dependsOn.map((dependency) => `  - ${dependency}`)];
 
@@ -142,12 +145,20 @@ async function writeAssumption(root, id, title, dependsOn) {
     join(root, ".harn", "assumptions", `${id}.yaml`),
     [
       `id: ${id}`,
+      `hash: ${hash}`,
       `title: ${title}`,
       "state: active",
-      `statement: ${title}.`,
+      `statement: ${statement}`,
       ...dependsOnLines
     ].join("\n")
   );
+}
+
+function hashAssumptionContent(title, statement) {
+  return `a-${createHash("sha256")
+    .update(JSON.stringify({ statement: statement.trim(), title: title.trim() }))
+    .digest("hex")
+    .slice(0, 12)}`;
 }
 
 function runHarn(root, ...args) {
