@@ -206,5 +206,5 @@ harn check <plan-id>
 ## References
 
 - For installation, initialization, and hook setup, read `references/install.md`.
+- For bootstrapping Harn in an existing project with no `.harn` files, read `references/bootstrap-existing-project.md`.
 - For detailed assumption and anchor guidance, read `references/assumptions.md`.
-
