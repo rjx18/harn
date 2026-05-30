@@ -18,9 +18,9 @@ export async function createLockFixture() {
   await mkdir(join(root, "backend"), { recursive: true });
 
   await writeFile(
-    join(root, ".harn", "assumptions", "a-7k3p9x.yaml"),
+    join(root, ".harn", "assumptions", "single-active-workflow.yaml"),
     [
-      "id: a-7k3p9x",
+      "id: single-active-workflow",
       "title: Single active workflow per case",
       "state: active",
       "statement: A case has at most one active workflow.",
@@ -31,26 +31,26 @@ export async function createLockFixture() {
   await writeFile(
     join(root, "backend", "workflow.py"),
     [
-      "# harn:assume a-7k3p9x ref=workflow-guard",
+      "# harn:assume single-active-workflow ref=workflow-guard",
       "if active:",
       "    raise Error()",
-      "# harn:end a-7k3p9x"
+      "# harn:end single-active-workflow"
     ].join("\n")
   );
 
   await writeFile(
-    join(root, ".harn", "plans", "p-d4f8qa.yaml"),
+    join(root, ".harn", "plans", "support-multiple-workflows.yaml"),
     [
-      "id: p-d4f8qa",
+      "id: support-multiple-workflows",
       "title: Support multiple active workflows",
       "assumptions:",
       "  retire:",
-      "    - id: a-7k3p9x",
+      "    - id: single-active-workflow",
       "      reason: Cases can now have multiple active workflows.",
       "  create: []",
       "  reviewed: []",
       "anchors:",
-      "  a-7k3p9x:",
+      "  single-active-workflow:",
       "    workflow-guard:",
       "      action: remove",
       "      reason: Guard rejects second active workflow.",

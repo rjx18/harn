@@ -7,8 +7,8 @@ import { createLockFixture, runHarn } from "./support/fixtures.mjs";
 test("harn plan lock writes a lock block", async () => {
   const root = await createLockFixture();
 
-  const output = runHarn(root, "plan", "lock", "p-d4f8qa");
-  const plan = await readFile(`${root}/.harn/plans/p-d4f8qa.yaml`, "utf8");
+  const output = runHarn(root, "plan", "lock", "support-multiple-workflows");
+  const plan = await readFile(`${root}/.harn/plans/support-multiple-workflows.yaml`, "utf8");
 
   assert.match(output, /result: locked/);
   assert.match(plan, /lock:/);
@@ -20,7 +20,7 @@ test("harn plan lock warns when worktree is dirty", async () => {
   const root = await createLockFixture();
   execFileSync("bash", ["-lc", "echo '# implementation' >> backend/workflow.py"], { cwd: root });
 
-  const output = runHarn(root, "plan", "lock", "p-d4f8qa");
+  const output = runHarn(root, "plan", "lock", "support-multiple-workflows");
 
   assert.match(output, /warnings:/);
   assert.match(output, /type: dirty_worktree_at_lock/);

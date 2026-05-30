@@ -30,7 +30,7 @@ test("harn find --changed shows touched anchors", async () => {
   const output = runHarn("find", "--changed");
 
   assert.match(output, /changed_anchors:/);
-  assert.match(output, /assumption: a-7k3p9x/);
+  assert.match(output, /assumption: single-active-workflow/);
   assert.match(output, /ref: workflow-guard/);
 });
 
@@ -42,7 +42,7 @@ test("harn find --staged shows staged touched anchors", async () => {
   const output = runHarn("find", "--staged");
 
   assert.match(output, /staged_anchors:/);
-  assert.match(output, /assumption: a-7k3p9x/);
+  assert.match(output, /assumption: single-active-workflow/);
   assert.match(output, /ref: workflow-guard/);
 });
 
@@ -56,9 +56,9 @@ async function createGitFixture() {
   await mkdir(join(root, ".harn", "plans"), { recursive: true });
   await mkdir(join(root, "backend"), { recursive: true });
   await writeFile(
-    join(root, ".harn", "assumptions", "a-7k3p9x.yaml"),
+    join(root, ".harn", "assumptions", "single-active-workflow.yaml"),
     [
-      "id: a-7k3p9x",
+      "id: single-active-workflow",
       "title: Single active workflow per case",
       "state: active",
       "statement: A case has at most one active workflow.",
@@ -67,7 +67,7 @@ async function createGitFixture() {
   );
   await writeFile(
     join(root, "backend", "workflow.py"),
-    "if active:  # harn:assume a-7k3p9x ref=workflow-guard\n"
+    "if active:  # harn:assume single-active-workflow ref=workflow-guard\n"
   );
 
   execFileSync("git", ["init"], { cwd: root });

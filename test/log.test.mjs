@@ -29,7 +29,7 @@ async function writePlan(root, id, title, appliedAt) {
       `title: ${title}`,
       "assumptions:",
       "  retire:",
-      "    - id: a-7k3p9x",
+      "    - id: single-active-workflow",
       "      reason: Retired by test.",
       "  create: []",
       "  reviewed: []",

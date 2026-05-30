@@ -20,34 +20,34 @@ test("harn find summarizes project state", async () => {
 test("harn find shows one assumption with anchors and dependents", async () => {
   const root = await createFindFixture();
 
-  const output = runHarn(root, "find", "a-7k3p9x");
+  const output = runHarn(root, "find", "single-active-workflow");
 
   assert.match(output, /assumption:/);
-  assert.match(output, /id: a-7k3p9x/);
+  assert.match(output, /id: single-active-workflow/);
   assert.match(output, /depended_by:/);
-  assert.match(output, /id: a-8m2q1z/);
+  assert.match(output, /id: case-status-derived/);
   assert.match(output, /ref: workflow-guard/);
 });
 
 test("harn find --depended-by traverses dependencies", async () => {
   const root = await createFindFixture();
 
-  const output = runHarn(root, "find", "--depended-by", "a-7k3p9x", "--depth", "1");
+  const output = runHarn(root, "find", "--depended-by", "single-active-workflow", "--depth", "1");
 
   assert.match(output, /target:/);
   assert.match(output, /depended_by:/);
-  assert.match(output, /id: a-8m2q1z/);
+  assert.match(output, /id: case-status-derived/);
   assert.match(output, /depth: 1/);
 });
 
 test("harn find --plan shows plan scope", async () => {
   const root = await createFindFixture();
 
-  const output = runHarn(root, "find", "--plan", "p-d4f8qa");
+  const output = runHarn(root, "find", "--plan", "support-multiple-workflows");
 
   assert.match(output, /plan:/);
   assert.match(output, /retire:/);
-  assert.match(output, /- a-7k3p9x/);
+  assert.match(output, /- single-active-workflow/);
   assert.match(output, /planned_action: remove/);
 });
 
@@ -58,9 +58,9 @@ async function createFindFixture() {
   await mkdir(join(root, "backend"), { recursive: true });
 
   await writeFile(
-    join(root, ".harn", "assumptions", "a-7k3p9x.yaml"),
+    join(root, ".harn", "assumptions", "single-active-workflow.yaml"),
     [
-      "id: a-7k3p9x",
+      "id: single-active-workflow",
       "title: Single active workflow per case",
       "state: active",
       "statement: A case has at most one active workflow.",
@@ -69,33 +69,33 @@ async function createFindFixture() {
   );
 
   await writeFile(
-    join(root, ".harn", "assumptions", "a-8m2q1z.yaml"),
+    join(root, ".harn", "assumptions", "case-status-derived.yaml"),
     [
-      "id: a-8m2q1z",
+      "id: case-status-derived",
       "title: Case status derives from active workflow",
       "state: active",
       "statement: Case status is derived from the active workflow.",
       "depends_on:",
-      "  - a-7k3p9x"
+      "  - single-active-workflow"
     ].join("\n")
   );
 
   await writeFile(
-    join(root, ".harn", "plans", "p-d4f8qa.yaml"),
+    join(root, ".harn", "plans", "support-multiple-workflows.yaml"),
     [
-      "id: p-d4f8qa",
+      "id: support-multiple-workflows",
       "title: Support multiple active workflows",
       "assumptions:",
       "  retire:",
-      "    - id: a-7k3p9x",
+      "    - id: single-active-workflow",
       "      reason: Cases can now have multiple active workflows.",
       "  create: []",
       "  reviewed:",
-      "    - id: a-8m2q1z",
-      "      reason: It depends on a-7k3p9x.",
+      "    - id: case-status-derived",
+      "      reason: It depends on single-active-workflow.",
       "      outcome: unchanged",
       "anchors:",
-      "  a-7k3p9x:",
+      "  single-active-workflow:",
       "    workflow-guard:",
       "      action: remove",
       "      reason: Guard rejects second active workflow.",
@@ -106,7 +106,7 @@ async function createFindFixture() {
 
   await writeFile(
     join(root, "backend", "workflow.py"),
-    "if active:  # harn:assume a-7k3p9x ref=workflow-guard"
+    "if active:  # harn:assume single-active-workflow ref=workflow-guard"
   );
 
   return root;

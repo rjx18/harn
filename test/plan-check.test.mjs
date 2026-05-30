@@ -9,17 +9,17 @@ import { test } from "node:test";
 test("harn plan check validates a complete plan", async () => {
   const root = await createPlanFixture({ includeDependent: true, includeStatusAnchor: true });
 
-  const output = runHarn(root, "plan", "check", "p-d4f8qa");
+  const output = runHarn(root, "plan", "check", "support-multiple-workflows");
 
   assert.match(output, /result: valid/);
   assert.match(output, /accounted_for:/);
-  assert.match(output, /a-7k3p9x:workflow-guard/);
+  assert.match(output, /single-active-workflow:workflow-guard/);
 });
 
 test("harn plan check catches missing dependent assumptions and anchor actions", async () => {
   const root = await createPlanFixture({ includeDependent: false, includeStatusAnchor: false });
 
-  const output = runHarn(root, "plan", "check", "p-d4f8qa");
+  const output = runHarn(root, "plan", "check", "support-multiple-workflows");
 
   assert.match(output, /result: invalid/);
   assert.match(output, /type: missing_dependent_assumption/);
@@ -32,22 +32,22 @@ async function createPlanFixture({ includeDependent, includeStatusAnchor }) {
   await mkdir(join(root, ".harn", "plans"), { recursive: true });
   await mkdir(join(root, "backend"), { recursive: true });
 
-  await writeAssumption(root, "a-7k3p9x", "Single active workflow", []);
-  await writeAssumption(root, "a-8m2q1z", "Case status derives from active workflow", ["a-7k3p9x"]);
+  await writeAssumption(root, "single-active-workflow", "Single active workflow", []);
+  await writeAssumption(root, "case-status-derived", "Case status derives from active workflow", ["single-active-workflow"]);
 
   await writeFile(
     join(root, "backend", "workflow.py"),
     [
-      "if active:  # harn:assume a-7k3p9x ref=workflow-guard",
-      "status = active  # harn:assume a-7k3p9x ref=status-report"
+      "if active:  # harn:assume single-active-workflow ref=workflow-guard",
+      "status = active  # harn:assume single-active-workflow ref=status-report"
     ].join("\n")
   );
 
   const reviewed = includeDependent
     ? [
         "  reviewed:",
-        "    - id: a-8m2q1z",
-        "      reason: It depends on a-7k3p9x.",
+        "    - id: case-status-derived",
+        "      reason: It depends on single-active-workflow.",
         "      outcome: unchanged"
       ]
     : ["  reviewed: []"];
@@ -57,18 +57,18 @@ async function createPlanFixture({ includeDependent, includeStatusAnchor }) {
     : [];
 
   await writeFile(
-    join(root, ".harn", "plans", "p-d4f8qa.yaml"),
+    join(root, ".harn", "plans", "support-multiple-workflows.yaml"),
     [
-      "id: p-d4f8qa",
+      "id: support-multiple-workflows",
       "title: Support multiple active workflows",
       "assumptions:",
       "  retire:",
-      "    - id: a-7k3p9x",
+      "    - id: single-active-workflow",
       "      reason: Cases can now have multiple active workflows.",
       "  create: []",
       ...reviewed,
       "anchors:",
-      "  a-7k3p9x:",
+      "  single-active-workflow:",
       "    workflow-guard:",
       "      action: remove",
       "      reason: Guard rejects second active workflow.",

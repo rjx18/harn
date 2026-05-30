@@ -6,7 +6,7 @@ import { createLockFixture, runHarn } from "./support/fixtures.mjs";
 
 test("harn apply retires and creates assumptions and marks plan applied", async () => {
   const root = await createLockFixture();
-  const planPath = `${root}/.harn/plans/p-d4f8qa.yaml`;
+  const planPath = `${root}/.harn/plans/support-multiple-workflows.yaml`;
   const plan = await readFile(planPath, "utf8");
   await writeFile(
     planPath,
@@ -14,7 +14,7 @@ test("harn apply retires and creates assumptions and marks plan applied", async 
       "  create: []",
       [
         "  create:",
-        "    - id: a-f92ks0",
+        "    - id: multiple-active-workflows",
         "      title: Multiple active workflows per case",
         "      statement: A case may have multiple active workflows.",
         "      reason: Replacement model for case workflows.",
@@ -26,12 +26,12 @@ test("harn apply retires and creates assumptions and marks plan applied", async 
   execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add create"], {
     cwd: root
   });
-  runHarn(root, "plan", "lock", "p-d4f8qa");
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
   execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
 
-  const output = runHarn(root, "apply", "p-d4f8qa");
-  const retired = await readFile(`${root}/.harn/assumptions/a-7k3p9x.yaml`, "utf8");
-  const created = await readFile(`${root}/.harn/assumptions/a-f92ks0.yaml`, "utf8");
+  const output = runHarn(root, "apply", "support-multiple-workflows");
+  const retired = await readFile(`${root}/.harn/assumptions/single-active-workflow.yaml`, "utf8");
+  const created = await readFile(`${root}/.harn/assumptions/multiple-active-workflows.yaml`, "utf8");
   const appliedPlan = await readFile(planPath, "utf8");
 
   assert.match(output, /result: applied/);
@@ -43,11 +43,11 @@ test("harn apply retires and creates assumptions and marks plan applied", async 
 
 test("harn apply does not mutate when check is blocked", async () => {
   const root = await createLockFixture();
-  runHarn(root, "plan", "lock", "p-d4f8qa");
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
   await writeFile(`${root}/backend/unplanned.py`, "print('unplanned')\n");
 
-  const output = runHarn(root, "apply", "p-d4f8qa");
-  const assumption = await readFile(`${root}/.harn/assumptions/a-7k3p9x.yaml`, "utf8");
+  const output = runHarn(root, "apply", "support-multiple-workflows");
+  const assumption = await readFile(`${root}/.harn/assumptions/single-active-workflow.yaml`, "utf8");
 
   assert.match(output, /result: blocked/);
   assert.match(assumption, /state: active/);
