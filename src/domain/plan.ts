@@ -39,7 +39,7 @@ export interface PlannedAnchorAction {
 export interface PlanLock {
   locked_at: string;
   base_commit: string;
-  plan_hash: string;
+  hash: string;
   dirty_at_lock: boolean;
 }
 
@@ -210,7 +210,7 @@ function parseLock(value: unknown, label: string, issues: string[]): PlanLock | 
   const record = asRecordForIssues(value, label, issues);
   const lockedAt = getRequiredString(record, "locked_at", issues);
   const baseCommit = getRequiredString(record, "base_commit", issues);
-  const planHash = getRequiredString(record, "plan_hash", issues);
+  const hash = getRequiredString(record, "hash", issues);
   const dirtyAtLock = record["dirty_at_lock"];
 
   if (typeof dirtyAtLock !== "boolean") {
@@ -220,7 +220,7 @@ function parseLock(value: unknown, label: string, issues: string[]): PlanLock | 
   return {
     locked_at: lockedAt,
     base_commit: baseCommit,
-    plan_hash: planHash,
+    hash,
     dirty_at_lock: dirtyAtLock === true
   };
 }

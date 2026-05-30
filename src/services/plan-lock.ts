@@ -15,7 +15,7 @@ export interface PlanLockResult {
   lock?: {
     locked_at: string;
     base_commit: string;
-    plan_hash: string;
+    hash: string;
     dirty_at_lock: boolean;
   };
   warnings?: Array<{
@@ -42,7 +42,7 @@ export async function lockPlan(paths: HarnPaths, planId: string): Promise<PlanLo
   const lock = {
     locked_at: new Date().toISOString(),
     base_commit: await getHeadCommit(paths.root),
-    plan_hash: hashPlanContent(rawPlan),
+    hash: hashPlanContent(rawPlan),
     dirty_at_lock: dirtyAtLock
   };
 

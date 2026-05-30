@@ -409,13 +409,13 @@ Example:
 lock:
   locked_at: 2026-05-30T10:00:00+08:00
   base_commit: abc123
-  plan_hash: 9f3a...
+  hash: 9f3a...
   dirty_at_lock: false
 ```
 
 `base_commit` is the Git commit that the implementation is expected to start from.
 
-`plan_hash` is a hash of the planned transition content, excluding the lock metadata itself.
+`hash` is a hash of the planned transition content, excluding the lock metadata itself.
 
 If a locked plan's planned transition content changes, Harn treats the lock as invalid.
 

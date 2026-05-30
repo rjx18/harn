@@ -51,7 +51,7 @@ test("derives plan state from lock and applied blocks", () => {
     lock: {
       locked_at: "2026-05-30T10:00:00+08:00",
       base_commit: "abc123",
-      plan_hash: "hash",
+      hash: "hash",
       dirty_at_lock: false
     }
   });
@@ -70,7 +70,7 @@ test("rejects a plan with lock and applied blocks", () => {
         lock: {
           locked_at: "2026-05-30T10:00:00+08:00",
           base_commit: "abc123",
-          plan_hash: "hash",
+          hash: "hash",
           dirty_at_lock: false
         },
         applied: {

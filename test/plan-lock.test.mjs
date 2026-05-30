@@ -12,7 +12,7 @@ test("harn plan lock writes a lock block", async () => {
 
   assert.match(output, /result: locked/);
   assert.match(plan, /lock:/);
-  assert.match(plan, /plan_hash:/);
+  assert.match(plan, /hash:/);
   assert.match(plan, /dirty_at_lock: false/);
 });
 

@@ -66,7 +66,7 @@ export async function checkDiff(paths: HarnPaths, options: CheckOptions): Promis
   }
 
   const rawPlan = await readYamlFile(planPath(paths, plan.id));
-  if (plan.lock && hashPlanContent(rawPlan) !== plan.lock.plan_hash) {
+  if (plan.lock && hashPlanContent(rawPlan) !== plan.lock.hash) {
     blocking.push({
       type: "locked_plan_changed",
       reason: "The plan content changed after it was locked."
