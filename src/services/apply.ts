@@ -4,7 +4,6 @@ import { assumptionPath, planPath } from "../core/repo.js";
 import { parseAssumption } from "../domain/assumption.js";
 import { hashAssumptionContent } from "../domain/assumption-hash.js";
 import { parsePlan } from "../domain/plan.js";
-import { getHeadCommit } from "../git/status.js";
 import { checkDiff } from "./check.js";
 
 export async function applyPlan(paths: HarnPaths, planId?: string): Promise<unknown> {
@@ -58,8 +57,7 @@ export async function applyPlan(paths: HarnPaths, planId?: string): Promise<unkn
   }
 
   const applied = {
-    applied_at: new Date().toISOString(),
-    commit: await getHeadCommit(paths.root)
+    applied_at: new Date().toISOString()
   };
 
   const { lock: _lock, ...planWithoutLock } = rawPlan;

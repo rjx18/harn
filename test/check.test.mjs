@@ -76,3 +76,56 @@ test("harn check --staged uses the single locked plan", async () => {
   assert.match(output, /result: pass/);
   assert.match(output, /planned: remove/);
 });
+
+test("harn check --staged accepts applied one-commit state", async () => {
+  const root = await createLockFixture();
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
+  execFileSync("git", ["add", "."], { cwd: root });
+  runHarn(root, "apply");
+  execFileSync("git", ["add", ".harn"], { cwd: root });
+
+  const output = runHarn(root, "check", "--staged");
+
+  assert.match(output, /result: pass/);
+  assert.match(output, /id: support-multiple-workflows/);
+});
+
+test("harn check --staged blocks unrelated assumptions in applied state", async () => {
+  const root = await createLockFixture();
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
+  execFileSync("git", ["add", "."], { cwd: root });
+  runHarn(root, "apply");
+  await writeFile(
+    `${root}/.harn/assumptions/unrelated.yaml`,
+    [
+      "id: unrelated",
+      "title: Unrelated",
+      "state: retired",
+      "statement: Unrelated code must stay observable for tests because this is unrelated.",
+      "depends_on: []"
+    ].join("\n")
+  );
+  execFileSync("git", ["add", ".harn"], { cwd: root });
+
+  const output = runHarnFailure(root, "check", "--staged");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /unexpected_applied_assumption_changed/);
+});
+
+test("harn check --staged blocks unplanned source files in applied state", async () => {
+  const root = await createLockFixture();
+  runHarn(root, "plan", "lock", "support-multiple-workflows");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
+  execFileSync("git", ["add", "."], { cwd: root });
+  runHarn(root, "apply");
+  await writeFile(`${root}/backend/unplanned.py`, "print('unplanned')\n");
+  execFileSync("git", ["add", "."], { cwd: root });
+
+  const output = runHarnFailure(root, "check", "--staged");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /unplanned_file_changed/);
+});
