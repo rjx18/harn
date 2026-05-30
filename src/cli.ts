@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import { registerApplyCommand } from "./commands/apply.js";
 import { registerFindCommand } from "./commands/find.js";
@@ -12,7 +13,7 @@ export function createCli(): Command {
   program
     .name("harn")
     .description("Repo-native guardrails for agentic coding.")
-    .version("0.0.0");
+    .version(readPackageVersion());
 
   registerInitCommand(program);
   registerFindCommand(program);
@@ -22,4 +23,15 @@ export function createCli(): Command {
   registerLogCommand(program);
 
   return program;
+}
+
+function readPackageVersion(): string {
+  try {
+    const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      version?: unknown;
+    };
+    return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
 }
