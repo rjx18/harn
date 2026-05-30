@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { test } from "node:test";
-import { createLockFixture, runHarn } from "./support/fixtures.mjs";
+import { createLockFixture, runHarn, runHarnFailure } from "./support/fixtures.mjs";
 
 test("harn check passes when diff matches locked plan", async () => {
   const root = await createLockFixture();
@@ -22,7 +22,7 @@ test("harn check blocks when locked plan changed", async () => {
   const plan = await readFile(planPath, "utf8");
   await writeFile(planPath, plan.replace("Support multiple active workflows", "Edited plan title"));
 
-  const output = runHarn(root, "check", "support-multiple-workflows");
+  const output = runHarnFailure(root, "check", "support-multiple-workflows");
 
   assert.match(output, /result: blocked/);
   assert.match(output, /type: locked_plan_changed/);
@@ -41,7 +41,7 @@ test("harn check blocks unplanned anchored changes", async () => {
   });
   execFileSync("bash", ["-lc", "perl -0pi -e 's/tenant/tenant_changed/' backend/other.py"], { cwd: root });
 
-  const output = runHarn(root, "check", "support-multiple-workflows");
+  const output = runHarnFailure(root, "check", "support-multiple-workflows");
 
   assert.match(output, /result: blocked/);
   assert.match(output, /type: unplanned_anchor_touched/);
@@ -59,7 +59,7 @@ test("harn check blocks changed keep anchors", async () => {
   runHarn(root, "plan", "lock", "support-multiple-workflows");
   execFileSync("bash", ["-lc", "perl -0pi -e 's/if active:/if active_changed:/' backend/workflow.py"], { cwd: root });
 
-  const output = runHarn(root, "check", "support-multiple-workflows");
+  const output = runHarnFailure(root, "check", "support-multiple-workflows");
 
   assert.match(output, /result: blocked/);
   assert.match(output, /type: kept_anchor_changed/);

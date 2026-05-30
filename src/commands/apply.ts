@@ -9,6 +9,10 @@ export function registerApplyCommand(program: Command): void {
     .description("Apply a valid locked plan to assumption truth.")
     .action(async (planId: string) => {
       const root = findRepoRoot();
-      printYaml(await applyPlan(getHarnPaths(root), planId));
+      const result = await applyPlan(getHarnPaths(root), planId);
+      printYaml(result);
+      if (typeof result === "object" && result && "result" in result && result.result === "blocked") {
+        process.exitCode = 1;
+      }
     });
 }

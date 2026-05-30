@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { test } from "node:test";
-import { createLockFixture, runHarn } from "./support/fixtures.mjs";
+import { createLockFixture, runHarn, runHarnFailure } from "./support/fixtures.mjs";
 
 test("harn apply retires and creates assumptions and marks plan applied", async () => {
   const root = await createLockFixture();
@@ -49,7 +49,7 @@ test("harn apply does not mutate when check is blocked", async () => {
   runHarn(root, "plan", "lock", "support-multiple-workflows");
   await writeFile(`${root}/backend/unplanned.py`, "print('unplanned')\n");
 
-  const output = runHarn(root, "apply", "support-multiple-workflows");
+  const output = runHarnFailure(root, "apply", "support-multiple-workflows");
   const assumption = await readFile(`${root}/.harn/assumptions/single-active-workflow.yaml`, "utf8");
 
   assert.match(output, /result: blocked/);

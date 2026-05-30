@@ -11,6 +11,16 @@ export function runHarn(root, ...args) {
   });
 }
 
+export function runHarnFailure(root, ...args) {
+  try {
+    runHarn(root, ...args);
+  } catch (error) {
+    return `${error.stdout ?? ""}${error.stderr ?? ""}`;
+  }
+
+  throw new Error(`Expected harn ${args.join(" ")} to fail`);
+}
+
 export async function createLockFixture() {
   const root = await mkdtemp(join(tmpdir(), "harn-lock-"));
   await mkdir(join(root, ".harn", "assumptions"), { recursive: true });

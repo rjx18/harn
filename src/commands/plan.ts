@@ -14,7 +14,11 @@ export function registerPlanCommand(program: Command): void {
     .description("Validate a plan before implementation.")
     .action(async (planId: string) => {
       const root = findRepoRoot();
-      printYaml(await checkPlan(getHarnPaths(root), planId));
+      const result = await checkPlan(getHarnPaths(root), planId);
+      printYaml(result);
+      if (result.result === "invalid") {
+        process.exitCode = 1;
+      }
     });
 
   plan
@@ -22,6 +26,10 @@ export function registerPlanCommand(program: Command): void {
     .description("Freeze a valid plan.")
     .action(async (planId: string) => {
       const root = findRepoRoot();
-      printYaml(await lockPlan(getHarnPaths(root), planId));
+      const result = await lockPlan(getHarnPaths(root), planId);
+      printYaml(result);
+      if (result.result === "invalid") {
+        process.exitCode = 1;
+      }
     });
 }

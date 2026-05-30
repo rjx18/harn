@@ -10,6 +10,10 @@ export function registerCheckCommand(program: Command): void {
     .option("--staged", "validate the staged diff")
     .action(async (planId: string | undefined, options: Record<string, unknown>) => {
       const root = findRepoRoot();
-      printYaml(await checkDiff(getHarnPaths(root), { planId, staged: options["staged"] === true }));
+      const result = await checkDiff(getHarnPaths(root), { planId, staged: options["staged"] === true });
+      printYaml(result);
+      if (result.result === "blocked") {
+        process.exitCode = 1;
+      }
     });
 }

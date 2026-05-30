@@ -20,7 +20,7 @@ test("harn plan check validates a complete plan", async () => {
 test("harn plan check catches missing dependent assumptions and anchor actions", async () => {
   const root = await createPlanFixture({ includeDependent: false, includeStatusAnchor: false });
 
-  const output = runHarn(root, "plan", "check", "support-multiple-workflows");
+  const output = runHarnFailure(root, "plan", "check", "support-multiple-workflows");
 
   assert.match(output, /result: invalid/);
   assert.match(output, /type: missing_dependent_assumption/);
@@ -166,4 +166,14 @@ function runHarn(root, ...args) {
     cwd: root,
     encoding: "utf8"
   });
+}
+
+function runHarnFailure(root, ...args) {
+  try {
+    runHarn(root, ...args);
+  } catch (error) {
+    return `${error.stdout ?? ""}${error.stderr ?? ""}`;
+  }
+
+  throw new Error(`Expected harn ${args.join(" ")} to fail`);
 }
