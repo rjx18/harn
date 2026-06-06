@@ -11,7 +11,7 @@ export interface Anchor {
 }
 
 export interface AnchorIssue {
-  type: "missing_ref" | "missing_end" | "unexpected_end" | "nested_anchor" | "duplicate_anchor";
+  type: "missing_ref" | "missing_end" | "unexpected_end" | "mismatched_end" | "duplicate_anchor";
   file: string;
   line?: number;
   message: string;

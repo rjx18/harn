@@ -67,6 +67,151 @@ test("reports missing end markers", () => {
   assert.equal(result.issues[0].type, "missing_end");
 });
 
+test("finds nested block anchors", () => {
+  const result = scanAnchorText(
+    "backend/payment.py",
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    remaining = payment.amount",
+      "    # harn:assume catastrophe-payment-override ref=catastrophe-branch",
+      "    if claim.is_catastrophe:",
+      "        remaining = allocate_insurer_first(claim, remaining)",
+      "    # harn:end catastrophe-payment-override",
+      "    return allocate_deductible_first(claim, remaining)",
+      "# harn:end payment-priority-order"
+    ].join("\n")
+  );
+
+  assert.equal(result.issues.length, 0);
+  assert.deepEqual(
+    result.anchors.map((anchor) => ({
+      identity: anchor.identity,
+      startLine: anchor.startLine,
+      endLine: anchor.endLine,
+      kind: anchor.kind
+    })),
+    [
+      {
+        identity: "catastrophe-payment-override:catastrophe-branch",
+        startLine: 4,
+        endLine: 7,
+        kind: "block"
+      },
+      {
+        identity: "payment-priority-order:allocation-flow",
+        startLine: 1,
+        endLine: 9,
+        kind: "block"
+      }
+    ]
+  );
+});
+
+test("allows nested anchors with the same assumption and different refs", () => {
+  const result = scanAnchorText(
+    "backend/payment.py",
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    # harn:assume payment-priority-order ref=catastrophe-branch",
+      "    if claim.is_catastrophe:",
+      "        return allocate_insurer_first(claim, payment)",
+      "    # harn:end payment-priority-order",
+      "    return allocate_deductible_first(claim, payment)",
+      "# harn:end payment-priority-order"
+    ].join("\n")
+  );
+
+  assert.equal(result.issues.length, 0);
+  assert.deepEqual(
+    result.anchors.map((anchor) => anchor.identity),
+    ["payment-priority-order:catastrophe-branch", "payment-priority-order:allocation-flow"]
+  );
+});
+
+test("reports mismatched nested end markers", () => {
+  const result = scanAnchorText(
+    "backend/payment.py",
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    # harn:assume catastrophe-payment-override ref=catastrophe-branch",
+      "    if claim.is_catastrophe:",
+      "        return allocate_insurer_first(claim, payment)",
+      "    # harn:end payment-priority-order",
+      "    return allocate_deductible_first(claim, payment)",
+      "# harn:end catastrophe-payment-override"
+    ].join("\n")
+  );
+
+  assert.equal(result.issues[0].type, "mismatched_end");
+  assert.match(result.issues[0].message, /does not match open anchor/);
+});
+
+test("reports missing end markers for unclosed nested anchors", () => {
+  const result = scanAnchorText(
+    "backend/payment.py",
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    # harn:assume catastrophe-payment-override ref=catastrophe-branch",
+      "    if claim.is_catastrophe:",
+      "        return allocate_insurer_first(claim, payment)"
+    ].join("\n")
+  );
+
+  assert.deepEqual(
+    result.issues.map((issue) => issue.type),
+    ["missing_end", "missing_end"]
+  );
+});
+
+test("does not treat inline anchors as nested stack entries", () => {
+  const result = scanAnchorText(
+    "backend/payment.py",
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    if claim.is_catastrophe:  # harn:assume catastrophe-payment-override ref=catastrophe-line",
+      "        return allocate_insurer_first(claim, payment)",
+      "# harn:end payment-priority-order"
+    ].join("\n")
+  );
+
+  assert.equal(result.issues.length, 0);
+  assert.deepEqual(
+    result.anchors.map((anchor) => ({ identity: anchor.identity, kind: anchor.kind })),
+    [
+      { identity: "catastrophe-payment-override:catastrophe-line", kind: "line" },
+      { identity: "payment-priority-order:allocation-flow", kind: "block" }
+    ]
+  );
+});
+
+test("does not treat function-scope anchors as nested stack entries", () => {
+  const result = scanAnchorText(
+    "backend/payment.py",
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    # harn:assume catastrophe-payment-override ref=catastrophe-function scope=function",
+      "    if claim.is_catastrophe:",
+      "        return allocate_insurer_first(claim, payment)",
+      "# harn:end payment-priority-order"
+    ].join("\n")
+  );
+
+  assert.equal(result.issues.length, 0);
+  assert.deepEqual(
+    result.anchors.map((anchor) => ({ identity: anchor.identity, kind: anchor.kind })),
+    [
+      { identity: "catastrophe-payment-override:catastrophe-function", kind: "function" },
+      { identity: "payment-priority-order:allocation-flow", kind: "block" }
+    ]
+  );
+});
+
 test("reports duplicate anchors across files", async () => {
   const root = await mkdtemp(join(tmpdir(), "harn-anchors-"));
   await mkdir(join(root, "backend"), { recursive: true });

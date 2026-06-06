@@ -39,12 +39,13 @@ export function scanAnchorText(file: string, content: string): AnchorScanResult 
   const anchors: Anchor[] = [];
   const issues: AnchorIssue[] = [];
   const lines = content.split(/\r?\n/);
-  let openBlock: OpenBlock | undefined;
+  const stack: OpenBlock[] = [];
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
     const endMarker = parseEndMarker(line);
     if (endMarker) {
+      const openBlock = stack.at(-1);
       if (!openBlock) {
         issues.push({
           type: "unexpected_end",
@@ -55,8 +56,18 @@ export function scanAnchorText(file: string, content: string): AnchorScanResult 
         return;
       }
 
+      if (openBlock.marker.assumptionId !== endMarker.assumptionId) {
+        issues.push({
+          type: "mismatched_end",
+          file,
+          line: lineNumber,
+          message: `harn:end ${endMarker.assumptionId} does not match open anchor ${openBlock.marker.assumptionId}:${openBlock.marker.ref}.`
+        });
+        return;
+      }
+
+      stack.pop();
       anchors.push(makeAnchor(openBlock.marker, file, openBlock.startLine, lineNumber, "block"));
-      openBlock = undefined;
       return;
     }
 
@@ -75,16 +86,6 @@ export function scanAnchorText(file: string, content: string): AnchorScanResult 
       return;
     }
 
-    if (openBlock) {
-      issues.push({
-        type: "nested_anchor",
-        file,
-        line: lineNumber,
-        message: `Nested anchor ${marker.assumptionId}:${marker.ref} inside ${openBlock.marker.assumptionId}:${openBlock.marker.ref}.`
-      });
-      return;
-    }
-
     if (marker.scope === "function") {
       anchors.push(makeAnchor(marker, file, lineNumber, lineNumber, "function"));
       return;
@@ -95,10 +96,10 @@ export function scanAnchorText(file: string, content: string): AnchorScanResult 
       return;
     }
 
-    openBlock = { marker, file, startLine: lineNumber };
+    stack.push({ marker, file, startLine: lineNumber });
   });
 
-  if (openBlock) {
+  for (const openBlock of stack) {
     issues.push({
       type: "missing_end",
       file,
