@@ -49,6 +49,8 @@ A normal flow is:
 8. One commit contains code, applied plan, and updated assumption truth.
 ```
 
+Many plans may exist in `.harn/plans/`, but only one plan may be locked in a worktree at a time. One implementation commit must consume only one locked plan. Draft plan-only commits are allowed as planning checkpoints.
+
 ## Assumptions
 
 An assumption is a tracked statement that code depends on.
@@ -244,7 +246,7 @@ cp hooks/pre-commit .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
 
-The hook blocks commits when staged code does not match the locked plan. It also blocks applied Harn state that does not match the plan.
+The hook blocks commits when staged code does not match the locked plan. It also blocks applied Harn state that does not match the plan. Empty staged checks and draft plan-only checkpoint commits are allowed.
 
 ## Commands
 
@@ -278,6 +280,8 @@ harn log
 - locked plans must not be modified after locking
 
 `harn check --staged` also accepts valid applied Harn state produced by `harn apply`.
+
+It also passes for an empty staged diff or a draft plan-only staged diff.
 
 ## Claude And Codex Skills
 

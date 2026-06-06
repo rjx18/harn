@@ -95,4 +95,6 @@ git add .harn
 harn check --staged
 ```
 
-The hook creates one commit containing the code change, applied plan, and generated assumption truth. Do not install a post-commit Harn apply hook for normal work.
+The hook creates one commit containing the code change, applied plan, and generated assumption truth. Empty staged checks and draft plan-only checkpoint commits pass without apply.
+
+One implementation commit must consume only one locked plan. Do not install a post-commit Harn apply hook for normal work.

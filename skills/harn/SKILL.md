@@ -50,6 +50,7 @@ If there is large uncommitted scaffold work, stop and ask whether to commit it f
 
 4. Lock the plan.
    - Run `harn plan lock <plan-id>`.
+   - Only one plan may be locked in a worktree at a time.
    - Do not implement before the plan is locked unless explicitly asked.
    - If the lock says `dirty_at_lock: true`, report this to the human before continuing.
 
@@ -63,7 +64,10 @@ If there is large uncommitted scaffold work, stop and ask whether to commit it f
    - The pre-commit hook should run `harn check --staged`, `harn apply`, `git add .harn`, then `harn check --staged` again.
 
 7. Commit once.
+   - One implementation commit must consume only one locked plan.
    - The commit should contain the code change, applied plan, and generated assumption truth.
+   - If the work needs multiple implementation commits, split it into multiple plans before locking.
+   - Draft plan-only commits are allowed as planning checkpoints.
    - Do not use a post-commit Harn apply flow for normal work.
 
 ## Assumption Rule Of Thumb

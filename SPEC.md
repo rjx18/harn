@@ -459,6 +459,10 @@ blocking:
 
 The normal flow is to lock the plan before code is written.
 
+Many draft or applied plans may exist in `.harn/plans/`, but only one plan may be locked in a worktree at a time. `harn plan lock <plan-id>` locks the selected draft plan and blocks if another plan is already locked.
+
+One implementation commit must consume only one locked plan. If the work needs multiple implementation commits, split it into multiple plans before locking.
+
 If code has already been written, Harn may still lock the plan, but the lock records that it was created with a dirty worktree. This is allowed, but Harn must warn that the plan was backfilled after implementation started.
 
 The current plan file itself does not count as dirty when it is being locked. A new draft plan must be writable before it can be locked.
@@ -850,6 +854,8 @@ harn check --staged
 ```
 
 The hook blocks commits when staged changes do not match a locked plan. When the staged implementation is valid, the hook applies the plan, restages `.harn`, validates the applied staged state, and allows one commit containing code plus Harn truth.
+
+The hook should pass without applying when the staged diff is empty or contains only draft plan files.
 
 The hook should catch:
 
