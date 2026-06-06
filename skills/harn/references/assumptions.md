@@ -46,6 +46,106 @@ connected to code
 reviewable when changed
 ```
 
+## Assumption Granularity
+
+Create one Harn assumption per independently reviewable review obligation.
+
+A review obligation is one specific rule, invariant, dependency, data contract, UI/runtime behavior, integration expectation, or policy that future work may need to review deliberately.
+
+Do not create one broad assumption for a feature area, page, module, service, workflow, or subsystem when it contains multiple review obligations that can change independently.
+
+Good assumption IDs name the rule or behavior they protect. They should usually read like a compact claim about the system, not just the name of a feature area.
+
+Examples:
+
+```txt
+Weak: checkout-pricing
+Better: discount-applies-before-tax
+Better: receipt-total-mirrors-payment-total
+```
+
+This is a heuristic, not a grammar rule. Some concise IDs may look noun-like but still name a real rule, such as `admin-only-export`, if the statement clearly defines the authorization obligation.
+
+## Decision Rule
+
+For each candidate assumption, ask:
+
+```txt
+1. Is this anchored to code, tests, schema, config, UI behavior, API behavior, or runtime behavior?
+   If no, do not create it.
+
+2. If this changes, should a future agent review at least one specific code/test/UI/schema/API location?
+   If no, do not create it.
+
+3. Does this protect one independently reviewable obligation?
+   If yes, create one assumption.
+
+4. Does this protect several obligations that can change independently?
+   If yes, split it.
+
+5. Does one obligation rely on another staying true?
+   If yes, use depends_on; do not merge them just because they are related.
+```
+
+Before locking a bootstrap plan, ask:
+
+```txt
+Could a future task change this obligation without changing the neighboring obligations?
+```
+
+If yes, keep it separate.
+
+Also ask:
+
+```txt
+Would splitting this further create assumptions about implementation details rather than meaningful review obligations?
+```
+
+If yes, do not split further.
+
+## Counter-Rule Against Over-Splitting
+
+Do not create assumptions for trivial implementation details, isolated render text, local helper mechanics, ordinary formatting, individual fixture fields, or one-off test assertions unless changing them would create a meaningful review obligation.
+
+Split by business rule, policy, data invariant, UI/runtime dependency, integration boundary, or cross-code dependency. Do not split by every line, branch, field, label, or assertion.
+
+Detailed frontend assumptions are valid when they protect behavior users or dependent code rely on.
+
+Useful detailed UI assumptions:
+
+```txt
+activity-feed-preserves-scroll-on-background-refresh
+command-palette-keeps-focus-after-filtering
+sla-banner-mirrors-sla-clock
+claim-detail-refreshes-derived-panels
+```
+
+Usually too small:
+
+```txt
+claim-id-renders-in-list
+button-label-says-save
+deductible-field-renders-before-insurer-field
+claim-card-uses-strong-for-claimant-name
+```
+
+The difference is whether the behavior is a real runtime dependency or user workflow guarantee, not whether it is visually small.
+
+## Producer / Consumer Guidance
+
+Use separate assumptions when one part produces a value and another part must mirror or consume it.
+
+Example:
+
+```txt
+Producer: payment-priority-order
+Consumer: settlement-preview-mirrors-payment-allocation
+```
+
+Connect with `depends_on` if the consumer depends on the producer.
+
+Do not merge them into `payment-settlement-logic`, because allocation order and settlement mirroring can change independently.
+
 Use this test:
 
 > If this statement changes, should at least one known code location, test, query, schema, or API shape be reviewed?

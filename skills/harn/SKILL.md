@@ -95,6 +95,12 @@ If the statement cannot be anchored to code, a test, a query, config, schema, or
 
 Good assumptions are specific, stable enough to matter, important if wrong, connected to code, and reviewable when changed.
 
+Create one Harn assumption per independently reviewable review obligation. A review obligation is one specific rule, invariant, dependency, data contract, UI/runtime behavior, integration expectation, or policy that future work may need to review deliberately.
+
+Do not create one broad assumption for a feature area, page, module, service, workflow, or subsystem when it contains multiple review obligations that can change independently. Use `depends_on` to connect related assumptions instead of merging them.
+
+Do not over-split into trivial implementation details, isolated render text, local helper mechanics, ordinary formatting, individual fixture fields, or one-off test assertions unless changing them would create a meaningful review obligation.
+
 Good assumptions are usually:
 
 ```txt
@@ -117,6 +123,8 @@ If unsure whether a statement should be a Harn assumption, read `references/assu
 Frontend assumptions can be detailed. They should describe UI/runtime contracts with cognitive load, not inert markup trivia.
 
 Good frontend assumptions include animation behavior, script/load ordering, runtime DOM ownership, generated content mounts, refresh/update relationships, responsive behavior, accessibility contracts, routing/state persistence, and integration contracts between old scripts and new components.
+
+When unsure about granularity, read `references/assumptions.md`. When bootstrapping a repo, read `references/bootstrap-existing-project.md`.
 
 ## ID And Hash Rules
 

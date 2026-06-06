@@ -53,6 +53,40 @@ Pass 3: Add an approved bootstrap plan and anchors
 
 Each pass must end with human confirmation. Do not move to the next pass until the human approves the previous pass.
 
+## Bootstrap Assumption Granularity
+
+Broad assumptions are acceptable as temporary bootstrap candidates while discovering the system. They should be split before `harn plan lock` and before apply. Applied assumptions should not be broad placeholders.
+
+Create one Harn assumption per independently reviewable review obligation.
+
+A review obligation is one specific rule, invariant, dependency, data contract, UI/runtime behavior, integration expectation, or policy that future work may need to review deliberately.
+
+When bootstrapping assumptions:
+
+```txt
+1. List candidate assumptions before writing the plan.
+   This can be a short note in the agent response, a setup note, or another lightweight local note.
+   Do not add candidate-only assumptions to the Harn plan unless they are intended to be checked and applied.
+
+2. Reject candidates that only name a feature area.
+
+3. Reject candidates that are only implementation details.
+
+4. Split candidates containing multiple independently changeable review obligations.
+
+5. Prefer producer/consumer assumptions over umbrella statements.
+
+6. Use depends_on to connect related assumptions.
+
+7. Anchor each assumption to the smallest useful code/test/UI region that expresses or protects the obligation.
+
+8. Verify each assumption has at least one concrete future-review reason.
+```
+
+Use separate assumptions when one part produces a value and another part must mirror or consume it. Connect them with `depends_on` if the consumer depends on the producer.
+
+Do not over-split into trivial implementation details, isolated render text, local helper mechanics, ordinary formatting, individual fixture fields, or one-off test assertions unless changing them would create a meaningful review obligation.
+
 ## Complex Repos: Work Entity By Entity
 
 If the codebase is large or complex, do not bootstrap all concepts in one pass.
@@ -242,6 +276,14 @@ depends_on should only include approved clear dependencies
 do not write hashes manually
 do not create retired assumptions during bootstrap unless explicitly asked
 ```
+
+## Splitting Applied Assumptions Later
+
+Applied assumptions are immutable.
+
+To split a broad assumption later, create a plan that retires the broad assumption and creates the narrower replacement assumptions in the same plan. Do not edit the old assumption directly.
+
+The plan should explain why the old assumption was too broad and how each replacement maps to existing anchors or new anchors.
 
 Add anchors only to code that directly depends on the assumption.
 
