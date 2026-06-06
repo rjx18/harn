@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
+import { hashAssumptionContent } from "../dist/domain/assumption-hash.js";
 import { createLockFixture, runHarn, runHarnFailure } from "./support/fixtures.mjs";
 
 test("harn check passes when diff matches locked plan", async () => {
@@ -129,3 +133,154 @@ test("harn check --staged blocks unplanned source files in applied state", async
   assert.match(output, /result: blocked/);
   assert.match(output, /unplanned_file_changed/);
 });
+
+test("harn check allows inner-only nested changes with only inner anchor planned", async () => {
+  const root = await createNestedAnchorFixture("inner-only-change", {
+    "catastrophe-payment-override": {
+      "catastrophe-branch": "change"
+    }
+  });
+  runHarn(root, "plan", "lock", "inner-only-change");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/allocate_insurer_first/allocate_insurer_first_changed/' backend/payment.py"], {
+    cwd: root
+  });
+
+  const output = runHarn(root, "check", "inner-only-change");
+
+  assert.match(output, /result: pass/);
+  assert.match(output, /anchor: catastrophe-payment-override:catastrophe-branch/);
+  assert.doesNotMatch(output, /payment-priority-order:allocation-flow/);
+});
+
+test("harn check allows outer-only nested changes with only outer anchor planned", async () => {
+  const root = await createNestedAnchorFixture("outer-only-change", {
+    "payment-priority-order": {
+      "allocation-flow": "change"
+    }
+  });
+  runHarn(root, "plan", "lock", "outer-only-change");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/allocate_deductible_first/allocate_deductible_first_changed/' backend/payment.py"], {
+    cwd: root
+  });
+
+  const output = runHarn(root, "check", "outer-only-change");
+
+  assert.match(output, /result: pass/);
+  assert.match(output, /anchor: payment-priority-order:allocation-flow/);
+  assert.doesNotMatch(output, /catastrophe-payment-override:catastrophe-branch/);
+});
+
+test("harn check blocks when nested inner change omits inner anchor", async () => {
+  const root = await createNestedAnchorFixture("missing-inner-change", {
+    "payment-priority-order": {
+      "allocation-flow": "change"
+    }
+  });
+  runHarn(root, "plan", "lock", "missing-inner-change");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/allocate_insurer_first/allocate_insurer_first_changed/' backend/payment.py"], {
+    cwd: root
+  });
+
+  const output = runHarnFailure(root, "check", "missing-inner-change");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /anchor: catastrophe-payment-override:catastrophe-branch/);
+  assert.match(output, /unplanned_anchor_touched/);
+});
+
+test("harn check blocks when nested outer change omits outer anchor", async () => {
+  const root = await createNestedAnchorFixture("missing-outer-change", {
+    "catastrophe-payment-override": {
+      "catastrophe-branch": "change"
+    }
+  });
+  runHarn(root, "plan", "lock", "missing-outer-change");
+  execFileSync("bash", ["-lc", "perl -0pi -e 's/allocate_deductible_first/allocate_deductible_first_changed/' backend/payment.py"], {
+    cwd: root
+  });
+
+  const output = runHarnFailure(root, "check", "missing-outer-change");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /anchor: payment-priority-order:allocation-flow/);
+  assert.match(output, /unplanned_anchor_touched/);
+});
+
+async function createNestedAnchorFixture(planId, anchors) {
+  const root = await mkdtemp(join(tmpdir(), "harn-nested-check-"));
+  await mkdir(join(root, ".harn", "assumptions"), { recursive: true });
+  await mkdir(join(root, ".harn", "plans"), { recursive: true });
+  await mkdir(join(root, "backend"), { recursive: true });
+
+  await writeAssumption(root, {
+    id: "payment-priority-order",
+    title: "Payment priority order",
+    statement:
+      "Payments must allocate deductible before insurer contribution because settlement totals display claimant balance first."
+  });
+  await writeAssumption(root, {
+    id: "catastrophe-payment-override",
+    title: "Catastrophe payment override",
+    statement:
+      "Catastrophe claims must allocate insurer contribution first because catastrophe settlements use emergency payout rules."
+  });
+  await writeFile(
+    join(root, "backend", "payment.py"),
+    [
+      "# harn:assume payment-priority-order ref=allocation-flow",
+      "def allocate_payment(claim, payment):",
+      "    remaining = payment.amount",
+      "    # harn:assume catastrophe-payment-override ref=catastrophe-branch",
+      "    if claim.is_catastrophe:",
+      "        remaining = allocate_insurer_first(claim, remaining)",
+      "    # harn:end catastrophe-payment-override",
+      "    return allocate_deductible_first(claim, remaining)",
+      "# harn:end payment-priority-order"
+    ].join("\n")
+  );
+
+  execFileSync("git", ["init"], { cwd: root });
+  execFileSync("git", ["add", "."], { cwd: root });
+  execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "initial"], {
+    cwd: root
+  });
+
+  await writeFile(join(root, ".harn", "plans", `${planId}.yaml`), renderNestedPlan(planId, anchors));
+  return root;
+}
+
+async function writeAssumption(root, assumption) {
+  await writeFile(
+    join(root, ".harn", "assumptions", `${assumption.id}.yaml`),
+    [
+      `id: ${assumption.id}`,
+      `hash: ${hashAssumptionContent({ title: assumption.title, statement: assumption.statement })}`,
+      `title: ${assumption.title}`,
+      "state: active",
+      `statement: ${assumption.statement}`,
+      "depends_on: []"
+    ].join("\n")
+  );
+}
+
+function renderNestedPlan(planId, anchors) {
+  return [
+    `id: ${planId}`,
+    `title: ${planId}`,
+    "assumptions:",
+    "  retire: []",
+    "  create: []",
+    "  reviewed: []",
+    "anchors:",
+    ...Object.entries(anchors).flatMap(([assumptionId, refs]) => [
+      `  ${assumptionId}:`,
+      ...Object.entries(refs).flatMap(([ref, action]) => [
+        `    ${ref}:`,
+        `      action: ${action}`,
+        "      reason: Planned nested-anchor test change."
+      ])
+    ]),
+    "files:",
+    "  - backend/payment.py"
+  ].join("\n");
+}

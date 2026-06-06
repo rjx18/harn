@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
+import { anchorsTouchedByRanges } from "../dist/git/anchors.js";
 import { parseChangedRanges } from "../dist/git/diff.js";
 
 test("parses changed ranges from zero-context git diff", () => {
@@ -21,6 +22,51 @@ test("parses changed ranges from zero-context git diff", () => {
     { file: "backend/workflow.py", startLine: 1, endLine: 1 },
     { file: "backend/workflow.py", startLine: 11, endLine: 12 }
   ]);
+});
+
+test("nested inner-only ranges touch the inner anchor only", () => {
+  const touched = anchorsTouchedByRanges(nestedAnchors(), [{ file: "backend/payment.py", startLine: 5, endLine: 5 }]);
+
+  assert.deepEqual(
+    touched.map((anchor) => anchor.identity),
+    ["catastrophe-payment-override:catastrophe-branch"]
+  );
+});
+
+test("nested outer-only ranges touch the outer anchor only", () => {
+  const touched = anchorsTouchedByRanges(nestedAnchors(), [{ file: "backend/payment.py", startLine: 8, endLine: 8 }]);
+
+  assert.deepEqual(
+    touched.map((anchor) => anchor.identity),
+    ["payment-priority-order:allocation-flow"]
+  );
+});
+
+test("nested ranges spanning inner and outer code touch both anchors", () => {
+  const touched = anchorsTouchedByRanges(nestedAnchors(), [{ file: "backend/payment.py", startLine: 5, endLine: 8 }]);
+
+  assert.deepEqual(
+    touched.map((anchor) => anchor.identity),
+    ["payment-priority-order:allocation-flow", "catastrophe-payment-override:catastrophe-branch"]
+  );
+});
+
+test("nested marker ranges touch the marker owner only", () => {
+  const outerStart = anchorsTouchedByRanges(nestedAnchors(), [
+    { file: "backend/payment.py", startLine: 1, endLine: 1 }
+  ]);
+  const innerStart = anchorsTouchedByRanges(nestedAnchors(), [
+    { file: "backend/payment.py", startLine: 4, endLine: 4 }
+  ]);
+
+  assert.deepEqual(
+    outerStart.map((anchor) => anchor.identity),
+    ["payment-priority-order:allocation-flow"]
+  );
+  assert.deepEqual(
+    innerStart.map((anchor) => anchor.identity),
+    ["catastrophe-payment-override:catastrophe-branch"]
+  );
 });
 
 test("harn find --changed shows touched anchors", async () => {
@@ -85,4 +131,27 @@ async function createGitFixture() {
         encoding: "utf8"
       })
   };
+}
+
+function nestedAnchors() {
+  return [
+    {
+      assumptionId: "payment-priority-order",
+      ref: "allocation-flow",
+      identity: "payment-priority-order:allocation-flow",
+      file: "backend/payment.py",
+      startLine: 1,
+      endLine: 9,
+      kind: "block"
+    },
+    {
+      assumptionId: "catastrophe-payment-override",
+      ref: "catastrophe-branch",
+      identity: "catastrophe-payment-override:catastrophe-branch",
+      file: "backend/payment.py",
+      startLine: 4,
+      endLine: 7,
+      kind: "block"
+    }
+  ];
 }
