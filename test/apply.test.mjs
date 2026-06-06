@@ -103,7 +103,28 @@ test("harn apply blocks when multiple locked plans exist and no id is provided",
     cwd: root
   });
   runHarn(root, "plan", "lock", "support-multiple-workflows");
-  runHarn(root, "plan", "lock", "review-workflow");
+  await writeFile(
+    `${root}/.harn/plans/review-workflow.yaml`,
+    [
+      "id: review-workflow",
+      "title: Review workflow assumption",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py",
+      "lock:",
+      "  locked_at: 2026-06-06T00:00:00.000Z",
+      "  base_commit: legacy",
+      "  hash: legacy",
+      "  dirty_at_lock: false"
+    ].join("\n")
+  );
 
   const output = runHarnFailure(root, "apply");
 

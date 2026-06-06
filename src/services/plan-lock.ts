@@ -2,7 +2,8 @@ import { readYamlFile, writeYamlFile } from "../core/yaml.js";
 import type { HarnPaths } from "../core/repo.js";
 import { planPath } from "../core/repo.js";
 import { hashPlanContent } from "../domain/plan-hash.js";
-import { parsePlan } from "../domain/plan.js";
+import { getPlanState, parsePlan } from "../domain/plan.js";
+import { loadHarnProject } from "../domain/project.js";
 import { getHeadCommit, isWorktreeDirtyExcept } from "../git/status.js";
 import { checkPlan } from "./plan-check.js";
 
@@ -32,6 +33,26 @@ export async function lockPlan(paths: HarnPaths, planId: string): Promise<PlanLo
       result: "invalid",
       plan: { id: planId },
       blocking: precheck.blocking
+    };
+  }
+
+  const project = await loadHarnProject(paths);
+  const otherLockedPlan = project.plans.find(
+    (candidate) => candidate.id !== planId && getPlanState(candidate) === "locked"
+  );
+
+  if (otherLockedPlan) {
+    return {
+      result: "invalid",
+      plan: { id: planId },
+      blocking: [
+        {
+          type: "another_plan_locked",
+          plan: otherLockedPlan.id,
+          reason:
+            "Another plan is already locked in this worktree. Apply or replace it before locking a new plan."
+        }
+      ]
     };
   }
 
