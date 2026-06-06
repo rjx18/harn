@@ -81,6 +81,99 @@ test("harn check --staged uses the single locked plan", async () => {
   assert.match(output, /planned: remove/);
 });
 
+test("harn check --staged passes with an empty staged diff", async () => {
+  const root = await createLockFixture();
+
+  const output = runHarn(root, "check", "--staged");
+
+  assert.match(output, /result: pass/);
+  assert.match(output, /empty: true/);
+});
+
+test("harn check --staged passes with draft plan-only changes", async () => {
+  const root = await createLockFixture();
+  await writeFile(
+    `${root}/.harn/plans/bootstrap-runtime.yaml`,
+    [
+      "id: bootstrap-runtime",
+      "title: Bootstrap runtime",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py"
+    ].join("\n")
+  );
+  execFileSync("git", ["add", ".harn/plans/bootstrap-runtime.yaml"], { cwd: root });
+
+  const output = runHarn(root, "check", "--staged");
+
+  assert.match(output, /result: pass/);
+  assert.match(output, /draft_plan_only: true/);
+});
+
+test("harn check --staged blocks non-draft plan-only changes", async () => {
+  const root = await createLockFixture();
+  await writeFile(
+    `${root}/.harn/plans/bootstrap-runtime.yaml`,
+    [
+      "id: bootstrap-runtime",
+      "title: Bootstrap runtime",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py",
+      "applied:",
+      "  applied_at: 2026-06-06T00:00:00.000Z"
+    ].join("\n")
+  );
+  execFileSync("git", ["add", ".harn/plans/bootstrap-runtime.yaml"], { cwd: root });
+
+  const output = runHarnFailure(root, "check", "--staged");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /staged_plan_not_draft/);
+});
+
+test("harn check --staged blocks source changes mixed with an unlocked draft plan", async () => {
+  const root = await createLockFixture();
+  await writeFile(
+    `${root}/.harn/plans/bootstrap-runtime.yaml`,
+    [
+      "id: bootstrap-runtime",
+      "title: Bootstrap runtime",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py"
+    ].join("\n")
+  );
+  await writeFile(`${root}/backend/unplanned.py`, "print('unplanned')\n");
+  execFileSync("git", ["add", ".harn/plans/bootstrap-runtime.yaml", "backend/unplanned.py"], { cwd: root });
+
+  const output = runHarnFailure(root, "check", "--staged");
+
+  assert.match(output, /result: blocked/);
+  assert.match(output, /locked_plan_not_found/);
+});
+
 test("harn check --staged accepts applied one-commit state", async () => {
   const root = await createLockFixture();
   runHarn(root, "plan", "lock", "support-multiple-workflows");

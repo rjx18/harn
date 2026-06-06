@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
-harn check --staged
+check_output="$(harn check --staged)"
+printf '%s\n' "$check_output"
+
+if printf '%s\n' "$check_output" | grep -Eq '  (empty|draft_plan_only): true'; then
+  exit 0
+fi
+
 harn apply
 git add .harn
 harn check --staged

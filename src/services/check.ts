@@ -11,6 +11,7 @@ import { anchorsTouchedByRanges } from "../git/anchors.js";
 import { getChangedFiles, getChangedRanges } from "../git/diff.js";
 import { readStagedFile } from "../git/show.js";
 import type { BlockingIssue } from "./plan-check.js";
+import { classifyStagedChanges } from "./staged-diff.js";
 
 export interface CheckOptions {
   planId?: string;
@@ -25,6 +26,8 @@ export interface DiffCheckResult {
   result: "pass" | "blocked";
   diff?: {
     unplanned_anchored_assumptions: string[];
+    empty?: boolean;
+    draft_plan_only?: boolean;
   };
   anchors?: AnchorCheckResult[];
   warnings?: Array<{
@@ -51,6 +54,36 @@ interface PlanResolution {
 export async function checkDiff(paths: HarnPaths, options: CheckOptions): Promise<DiffCheckResult> {
   const project = await loadHarnProject(paths);
   const changedFiles = await getChangedFiles(paths.root, options.staged === true);
+  if (options.staged === true && !options.planId) {
+    const staged = await classifyStagedChanges(paths, changedFiles);
+    if (staged.kind === "empty") {
+      return {
+        result: "pass",
+        diff: {
+          empty: true,
+          unplanned_anchored_assumptions: []
+        }
+      };
+    }
+
+    if (staged.kind === "draft_plan_only") {
+      return {
+        result: "pass",
+        diff: {
+          draft_plan_only: true,
+          unplanned_anchored_assumptions: []
+        }
+      };
+    }
+
+    if (staged.kind === "invalid_harn_metadata") {
+      return {
+        result: "blocked",
+        blocking: staged.blocking
+      };
+    }
+  }
+
   const resolution = resolvePlan(project.plans, options.planId, options.staged === true, changedFiles);
 
   if (!resolution) {

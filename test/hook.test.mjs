@@ -40,6 +40,49 @@ test("pre-commit hook blocks failed staged checks", async () => {
   );
 });
 
+test("pre-commit hook allows draft plan-only commits", async () => {
+  const root = await createLockFixture();
+  await writeFile(
+    join(root, ".harn", "plans", "bootstrap-runtime.yaml"),
+    [
+      "id: bootstrap-runtime",
+      "title: Bootstrap runtime",
+      "assumptions:",
+      "  retire: []",
+      "  create: []",
+      "  reviewed:",
+      "    - id: single-active-workflow",
+      "      outcome: unchanged",
+      "      reason: Baseline review.",
+      "anchors: {}",
+      "files:",
+      "  - backend/workflow.py"
+    ].join("\n")
+  );
+  execFileSync("git", ["add", ".harn/plans/bootstrap-runtime.yaml"], { cwd: root });
+
+  const binDir = await mkdtemp(join(tmpdir(), "harn-bin-"));
+  const harnBin = join(binDir, "harn");
+  await writeFile(harnBin, `#!/usr/bin/env sh\nnode ${JSON.stringify(join(process.cwd(), "dist/index.js"))} "$@"\n`);
+  await chmod(harnBin, 0o755);
+  await writeFile(join(root, ".git", "hooks", "pre-commit"), await readFile("hooks/pre-commit", "utf8"));
+  await chmod(join(root, ".git", "hooks", "pre-commit"), 0o755);
+
+  execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add draft plan"], {
+    cwd: root,
+    env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` },
+    encoding: "utf8"
+  });
+
+  const plan = execFileSync("git", ["show", "HEAD:.harn/plans/bootstrap-runtime.yaml"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.match(plan, /id: bootstrap-runtime/);
+  assert.doesNotMatch(plan, /applied:/);
+});
+
 test("pre-commit hook applies and restages Harn state in one commit", async () => {
   const root = await createLockFixture();
   runHarn(root, "plan", "lock", "support-multiple-workflows");
