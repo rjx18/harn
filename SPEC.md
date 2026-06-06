@@ -264,6 +264,45 @@ def start_workflow(case_id: str):
     ...
 ```
 
+### 7.5 Nested Block Anchors
+
+Block anchors may be nested.
+
+```python
+# harn:assume payment-priority-order ref=allocation-flow
+def allocate_payment(claim, payment):
+    remaining = payment.amount
+
+    # harn:assume catastrophe-payment-override ref=catastrophe-branch
+    if claim.is_catastrophe:
+        remaining = allocate_insurer_first(claim, remaining)
+    # harn:end catastrophe-payment-override
+
+    return allocate_deductible_first(claim, remaining)
+# harn:end payment-priority-order
+```
+
+Nested block rules:
+
+```txt
+- end markers close in last-in-first-out order
+- inline anchors do not create nesting scope
+- function-level anchors do not create nesting scope
+- nesting does not automatically create depends_on relationships
+```
+
+Nesting represents overlapping implementation. Semantic dependency must still be declared explicitly with `depends_on`.
+
+Diff checks use direct-touch semantics:
+
+```txt
+inner-only code change     = inner anchor touched
+outer-only code change     = outer anchor touched
+outer marker line changed  = outer anchor touched
+inner marker line changed  = inner anchor touched
+inner + outer code changed = both anchors touched
+```
+
 For MVP, anchors do not have roles.
 
 ## 8. Plans
@@ -654,6 +693,8 @@ It checks:
 - anchors planned as `change` were changed or still have an acceptable planned file change
 - anchors planned as `remove` were removed or changed consistently
 - ground-truth assumption files were not edited directly except through apply
+
+For nested anchors, `harn check` uses direct-touch semantics. An inner-only change does not require the outer anchor to be declared unless code outside the child span is also changed.
 
 Example passing output:
 

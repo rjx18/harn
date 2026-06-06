@@ -245,6 +245,45 @@ def start_workflow(case_id: str):
     ...
 ```
 
+Nested block anchors:
+
+```python
+# harn:assume payment-priority-order ref=allocation-flow
+def allocate_payment(claim, payment):
+    remaining = payment.amount
+
+    # harn:assume catastrophe-payment-override ref=catastrophe-branch
+    if claim.is_catastrophe:
+        remaining = allocate_insurer_first(claim, remaining)
+    # harn:end catastrophe-payment-override
+
+    return allocate_deductible_first(claim, remaining)
+# harn:end payment-priority-order
+```
+
+Nested anchors are useful when a broad region contains a narrower rule.
+
+Rules:
+
+```txt
+end markers close in last-in-first-out order
+inline anchors do not create nesting scope
+function-level anchors do not create nesting scope
+nesting does not automatically create depends_on
+```
+
+Nesting means overlapping implementation. `depends_on` means semantic dependency. Do not infer one from the other.
+
+When editing nested anchors:
+
+```txt
+inner-only code change     = plan the inner anchor
+outer-only code change     = plan the outer anchor
+inner + outer code changed = plan both anchors
+```
+
+If changing an inner assumption should force review of the outer assumption, declare that semantic relationship with `depends_on`.
+
 Anchor identity:
 
 ```txt

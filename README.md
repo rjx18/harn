@@ -92,6 +92,24 @@ if case.active_workflow_id is not None:  # harn:assume single-active-workflow re
     raise CaseAlreadyHasActiveWorkflowError(case.id)
 ```
 
+Nested block anchors are allowed:
+
+```python
+# harn:assume payment-priority-order ref=allocation-flow
+def allocate_payment(claim, payment):
+    # harn:assume catastrophe-payment-override ref=catastrophe-branch
+    if claim.is_catastrophe:
+        return allocate_insurer_first(claim, payment)
+    # harn:end catastrophe-payment-override
+
+    return allocate_deductible_first(claim, payment)
+# harn:end payment-priority-order
+```
+
+Nested anchors are closed in last-in-first-out order. Nesting means overlapping implementation, not automatic `depends_on`. Declare `depends_on` only when one assumption's truth relies on another assumption's truth.
+
+For diff checks, Harn uses direct-touch semantics: changing only the inner block touches the inner anchor, changing outer code outside the child block touches the outer anchor, and changing both requires both planned anchor actions.
+
 The assumption ID is readable. Harn-generated hashes are written by Harn, not by agents.
 
 Anchor actions in plans:

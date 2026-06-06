@@ -180,6 +180,16 @@ keep   = this anchored region must not change at all
 
 Adding or moving a Harn comment inside an anchored region is still a change. Do not use `keep` if you will touch that region for any reason.
 
+Nested block anchors are allowed. End markers must close in last-in-first-out order. Nesting means overlapping implementation, not automatic `depends_on`; declare semantic dependency explicitly.
+
+For nested anchors, Harn uses direct-touch semantics:
+
+```txt
+inner-only code change     = inner anchor touched
+outer-only code change     = outer anchor touched
+inner + outer code changed = both anchors touched
+```
+
 Plan-check results:
 
 ```txt
