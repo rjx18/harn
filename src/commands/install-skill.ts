@@ -332,11 +332,15 @@ async function promptForInstallTargets(
     const stdin = process.stdin;
     const stdout = process.stdout;
     const wasRaw = stdin.isRaw;
+    const wasPaused = stdin.isPaused();
 
     function cleanup(): void {
       stdin.off("data", onData);
       if (stdin.isTTY) {
         stdin.setRawMode(wasRaw);
+      }
+      if (wasPaused) {
+        stdin.pause();
       }
       stdout.write(styles.cursor.show);
     }

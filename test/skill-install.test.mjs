@@ -39,6 +39,22 @@ test("harn install can install CLI and selected agent targets in one command", a
   assert.equal(existsSync(join(project, ".cursor", "rules", "harn.mdc")), false);
 });
 
+test("harn install interactive menu exits after skipping assistant setup", { skip: !hasScriptCommand() }, () => {
+  const output = execFileSync(
+    "bash",
+    [
+      "-lc",
+      "timeout 5s bash -c \"printf '\\r' | script -qfec 'node dist/index.js install --dry-run --skip-cli' /dev/null\""
+    ],
+    {
+      encoding: "utf8"
+    }
+  );
+
+  assert.match(output, /Harn is ready/);
+  assert.match(output, /No assistant targets selected/);
+});
+
 test("harn install-skill installs user-scoped Codex and Claude skills", async () => {
   const home = await mkdtemp(join(tmpdir(), "harn-skill-home-"));
 
@@ -104,4 +120,13 @@ function runHarn(...args) {
   return execFileSync("node", [join(process.cwd(), "dist/index.js"), ...args], {
     encoding: "utf8"
   });
+}
+
+function hasScriptCommand() {
+  try {
+    execFileSync("bash", ["-lc", "command -v script"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
 }
