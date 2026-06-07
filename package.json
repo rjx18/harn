@@ -1,6 +1,6 @@
 {
   "name": "@richhardry/harn",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Repo-native guardrails for agentic coding.",
   "type": "module",
   "license": "MIT",

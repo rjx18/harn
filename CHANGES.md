@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.1.4
+
+- Fixed the interactive installer so it exits cleanly after the assistant menu completes.
+
 ## 0.1.3
 
 - Added the interactive `harn install` setup flow.
