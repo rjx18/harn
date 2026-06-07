@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -39,20 +39,20 @@ test("harn install can install CLI and selected agent targets in one command", a
   assert.equal(existsSync(join(project, ".cursor", "rules", "harn.mdc")), false);
 });
 
-test("harn install interactive menu exits after skipping assistant setup", { skip: !hasScriptCommand() }, () => {
-  const output = execFileSync(
-    "bash",
-    [
-      "-lc",
-      "timeout 5s bash -c \"printf '\\r' | script -qfec 'node dist/index.js install --dry-run --skip-cli' /dev/null\""
-    ],
-    {
-      encoding: "utf8"
-    }
-  );
+test("harn install interactive menu exits after skipping assistant setup", { skip: !hasScriptCommand() }, async () => {
+  const output = await runInteractiveHarn("\r");
 
   assert.match(output, /Harn is ready/);
   assert.match(output, /No assistant targets selected/);
+});
+
+test("harn install interactive menu handles coalesced input chunks", { skip: !hasScriptCommand() }, async () => {
+  const home = await mkdtemp(join(tmpdir(), "harn-interactive-home-"));
+  const project = await mkdtemp(join(tmpdir(), "harn-interactive-project-"));
+  const output = await runInteractiveHarn(" \r", "--home", home, "--project", project);
+
+  assert.match(output, /Harn is ready/);
+  assert.match(output, /target: codex/);
 });
 
 test("harn install-skill installs user-scoped Codex and Claude skills", async () => {
@@ -119,6 +119,53 @@ test("harn install-skill dry-run does not write files", async () => {
 function runHarn(...args) {
   return execFileSync("node", [join(process.cwd(), "dist/index.js"), ...args], {
     encoding: "utf8"
+  });
+}
+
+function runInteractiveHarn(input, ...args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      "script",
+      [
+        "-qfec",
+        ["node", "dist/index.js", "install", "--dry-run", "--skip-cli", ...args].join(" "),
+        "/dev/null"
+      ],
+      {
+        cwd: process.cwd(),
+        stdio: ["pipe", "pipe", "pipe"]
+      }
+    );
+    let output = "";
+    let wroteInput = false;
+
+    const timeout = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`interactive install did not exit.\n${output}`));
+    }, 4000);
+
+    function collect(data) {
+      output += data.toString("utf8");
+      if (!wroteInput && output.includes("Choose assistants for Harn")) {
+        wroteInput = true;
+        child.stdin.write(input);
+      }
+    }
+
+    child.stdout.on("data", collect);
+    child.stderr.on("data", collect);
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.on("exit", (code) => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve(output);
+      } else {
+        reject(new Error(`interactive install exited with code ${code ?? "unknown"}.\n${output}`));
+      }
+    });
   });
 }
 

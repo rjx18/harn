@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.1.5
+
+- Fixed live terminal installer cleanup so `harn install` exits after the interactive assistant menu on TTYs.
+- Fixed interactive menu key handling when terminals deliver multiple keypresses in one input chunk.
+
 ## 0.1.4
 
 - Fixed the interactive installer so it exits cleanly after the assistant menu completes.

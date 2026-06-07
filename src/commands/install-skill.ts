@@ -332,16 +332,13 @@ async function promptForInstallTargets(
     const stdin = process.stdin;
     const stdout = process.stdout;
     const wasRaw = stdin.isRaw;
-    const wasPaused = stdin.isPaused();
 
     function cleanup(): void {
       stdin.off("data", onData);
       if (stdin.isTTY) {
         stdin.setRawMode(wasRaw);
       }
-      if (wasPaused) {
-        stdin.pause();
-      }
+      stdin.pause();
       stdout.write(styles.cursor.show);
     }
 
@@ -369,13 +366,11 @@ async function promptForInstallTargets(
       stdout.write(renderMenu({ index, selected, detected: defaults }));
     }
 
-    function onData(data: Buffer): void {
-      const key = data.toString("utf8");
-
+    function onKey(key: string): boolean {
       if (key === "\u0003" || key.toLowerCase() === "q") {
         cleanup();
         reject(new HarnError("Install cancelled."));
-        return;
+        return true;
       }
 
       if (key === "\x1B[A") {
@@ -402,13 +397,23 @@ async function promptForInstallTargets(
           if (options.allowSkip) {
             cleanup();
             resolve([]);
-            return;
+            return true;
           }
           message = "Select at least one target.";
         } else {
           const targets = installTargets.filter((target) => selected.has(target));
           cleanup();
           resolve(targets);
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function onData(data: Buffer): void {
+      for (const key of parseTerminalKeys(data.toString("utf8"))) {
+        if (onKey(key)) {
           return;
         }
       }
@@ -423,6 +428,22 @@ async function promptForInstallTargets(
     stdin.on("data", onData);
     render();
   });
+}
+
+function parseTerminalKeys(input: string): string[] {
+  const keys: string[] = [];
+
+  for (let index = 0; index < input.length; index += 1) {
+    if (input.startsWith("\x1B[A", index) || input.startsWith("\x1B[B", index)) {
+      keys.push(input.slice(index, index + 3));
+      index += 2;
+      continue;
+    }
+
+    keys.push(input[index]);
+  }
+
+  return keys;
 }
 
 type StepStatus = "pending" | "running" | "done" | "skipped";
