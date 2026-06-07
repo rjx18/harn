@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { registerApplyCommand } from "./commands/apply.js";
 import { registerFindCommand } from "./commands/find.js";
 import { registerInitCommand } from "./commands/init.js";
+import { registerInstallSkillCommand } from "./commands/install-skill.js";
 import { registerLogCommand } from "./commands/log.js";
 import { registerPlanCommand } from "./commands/plan.js";
 import { registerCheckCommand } from "./commands/check.js";
@@ -16,6 +17,7 @@ export function createCli(): Command {
     .version(readPackageVersion());
 
   registerInitCommand(program);
+  registerInstallSkillCommand(program);
   registerFindCommand(program);
   registerPlanCommand(program);
   registerCheckCommand(program);

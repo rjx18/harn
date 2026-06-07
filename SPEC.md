@@ -891,3 +891,9 @@ harn log
 There is no separate `report` command in the MVP.
 
 `harn check` prints the status report directly in structured YAML-like output.
+
+## 17. Harn Ignore
+
+Harn should support a repo-root `.harnignore` file for paths that must not be scanned for anchors.
+
+This is separate from `.gitignore` because Harn often needs to ignore already-tracked instructional files such as README examples, specs, skills, and test fixtures. Ignore rules apply before anchor parsing, so literal `harn:assume` examples in ignored files do not create anchors or anchor issues.

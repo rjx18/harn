@@ -1,6 +1,6 @@
 {
   "name": "harn",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Use Harn's assumption-impact workflow in Claude Code: find assumptions, write plans, lock plans, check diffs, and apply Harn state.",
   "author": {
     "name": "richhardry"

@@ -1,5 +1,11 @@
 # Harn
 
+[![Actions Status](https://github.com/rjx18/harn/actions/workflows/test.yml/badge.svg)](https://github.com/rjx18/harn/actions/workflows/test.yml)
+[![npm](https://img.shields.io/npm/v/%40richhardry%2Fharn.svg)](https://www.npmjs.com/package/@richhardry/harn)
+[![Supported Node Versions](https://img.shields.io/badge/node-%3E%3D20-339933.svg)](./package.json)
+[![Downloads](https://img.shields.io/npm/dm/%40richhardry%2Fharn.svg)](https://www.npmjs.com/package/@richhardry/harn)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 Harn is a repo-native guardrail for agentic coding.
 
 It gives AI agents one job: make code changes match a predeclared assumption-impact plan.
@@ -7,6 +13,16 @@ It gives AI agents one job: make code changes match a predeclared assumption-imp
 Harn is not a coding agent, task manager, or work log. It is a small deterministic layer that uses Git-tracked files, source anchors, and Git diffs to answer:
 
 > Did this change stay inside the plan that was declared before coding started?
+
+## Install
+
+Run the interactive installer:
+
+```bash
+npx @richhardry/harn@latest install
+```
+
+The installer sets up the Harn CLI, then lets you choose which coding assistants should get the Harn agent skill or project rule.
 
 ## Why Harn Exists
 
@@ -122,23 +138,20 @@ remove = this anchored region or assumption dependency is expected to be removed
 keep   = this anchored region must not change
 ```
 
-## Install
+## Ignore Non-Source Examples
 
-Recommended for normal repo work and Git hooks:
+Harn scans Git-visible files for anchor markers. If documentation, examples, generated output, or fixtures include literal `harn:assume` text that should not count as live source anchors, add those paths to `.harnignore` at the repo root:
 
-```bash
-npm install -g @richhardry/harn
-harn --help
+```gitignore
+README.md
+SPEC.md
+docs/
+fixtures/
 ```
 
-One-off use:
+`.harnignore` is applied by Harn itself, including to already-tracked files.
 
-```bash
-npx @richhardry/harn --help
-npx @richhardry/harn <command>
-```
-
-Local development:
+## Local Development
 
 ```bash
 npm install
@@ -161,6 +174,8 @@ This creates:
   assumptions/
   plans/
 ```
+
+If the target repository is a Git worktree, `harn init` also installs Harn's pre-commit hook. Use `harn init --no-hook` to skip hook installation.
 
 For an existing complex project, bootstrap Harn in small human-reviewed passes: identify core entities, propose assumptions for one entity at a time, then add approved anchors and plans.
 
@@ -283,25 +298,46 @@ harn log
 
 It also passes for an empty staged diff or a draft plan-only staged diff.
 
-## Claude And Codex Skills
+## Agent Skills
 
-This repo includes a Claude Code plugin and a Codex skill in `skill/`.
+This package includes a Harn skill that can be installed into supported coding assistants.
 
-Validate the Claude plugin:
+The installer installs the Harn CLI globally, then opens a terminal menu where you can choose zero or more assistant targets such as Codex, Claude Code, Cursor, Windsurf, GitHub Copilot instructions, or a generic `AGENTS.md`. Press Enter without selecting an assistant to skip agent setup.
 
-```bash
-claude plugin validate .
+Available targets:
+
+```txt
+auto            Detect existing assistant directories, or fall back to Codex and Claude user skills.
+all             Install every supported target.
+codex           ~/.codex/skills/harn
+claude          ~/.claude/skills/harn
+claude-project  .claude/skills/harn
+cursor          .cursor/rules/harn.mdc
+windsurf        .windsurf/rules/harn.md
+copilot         .github/instructions/harn.instructions.md
+agents          AGENTS.md
 ```
 
-Install the Codex skill locally:
-
-```bash
-mkdir -p ~/.codex/skills/harn
-cp -R skill/. ~/.codex/skills/harn/
-```
-
-Then add a standing global instruction telling Codex to use the Harn skill whenever a repo contains `.harn/`.
+Pass `--force` to replace an existing Harn skill or rule file. Pass `--yes` to skip the interactive menu and use auto-detected targets.
 
 ## Spec
 
 The detailed MVP behavior is in [`SPEC.md`](./SPEC.md).
+
+## Change Log
+
+The log has become long enough to live in its own file.
+
+See [`CHANGES.md`](./CHANGES.md).
+
+## Authors
+
+The author list lives in its own file.
+
+See [`AUTHORS.md`](./AUTHORS.md).
+
+## Code Of Conduct
+
+Everyone participating in Harn is expected to treat other people with respect in issues, pull requests, discussions, and related project spaces.
+
+See [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).

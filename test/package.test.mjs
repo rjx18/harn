@@ -7,8 +7,11 @@ test("package exposes harn as a bin for npx", async () => {
   const pkg = JSON.parse(await readFile("package.json", "utf8"));
 
   assert.equal(pkg.bin.harn, "dist/index.js");
+  assert.equal(pkg.bin["harn-install-skill"], "dist/install-skill.js");
   assert.ok(pkg.scripts.prepack.includes("npm run build"));
   assert.ok(pkg.files.includes("dist"));
+  assert.ok(pkg.files.includes("skill"));
+  assert.ok(pkg.files.includes(".claude-plugin"));
   assert.ok(pkg.files.includes("hooks"));
 });
 

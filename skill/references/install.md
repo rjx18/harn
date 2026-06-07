@@ -2,19 +2,29 @@
 
 ## Install
 
-Recommended install for normal repo work and Git hooks:
+Run the interactive installer:
 
 ```bash
-npm install -g @richhardry/harn
-harn --help
+npx @richhardry/harn@latest install
 ```
 
-One-off use without installing:
+The installer sets up the Harn CLI, then lets you choose which coding assistants should get the Harn agent skill or project rule.
 
-```bash
-npx @richhardry/harn --help
-npx @richhardry/harn <command>
+Targets:
+
+```txt
+auto            Detect existing assistant directories, or fall back to Codex and Claude user skills.
+all             Install every supported target.
+codex           ~/.codex/skills/harn
+claude          ~/.claude/skills/harn
+claude-project  .claude/skills/harn
+cursor          .cursor/rules/harn.mdc
+windsurf        .windsurf/rules/harn.md
+copilot         .github/instructions/harn.instructions.md
+agents          AGENTS.md
 ```
+
+Pass `--force` to replace an existing Harn skill or rule file. Pass `--yes` to skip the interactive menu and use auto-detected targets.
 
 If using the local Harn repo:
 
@@ -33,14 +43,7 @@ harn --help
 
 ## Codex Global Instruction
 
-For Codex, install the Harn skill and add a standing global instruction so it is used automatically in Harn-enabled repos.
-
-Install the skill into Codex:
-
-```bash
-mkdir -p ~/.codex/skills/harn
-cp -R /path/to/harn/skill/. ~/.codex/skills/harn/
-```
+For Codex, install the Harn skill so it is used automatically in Harn-enabled repos.
 
 Then add this to `~/.codex/AGENTS.md` or your Codex global instructions file:
 
@@ -72,6 +75,8 @@ This creates:
   assumptions/
   plans/
 ```
+
+If the target repository is a Git worktree, `harn init` also installs Harn's pre-commit hook. Use `harn init --no-hook` to skip hook installation.
 
 Commit `.harn` files with the code changes they justify.
 

@@ -1,0 +1,6 @@
+# Documentation and examples contain literal anchor syntax for instruction.
+README.md
+SPEC.md
+skill/
+skills/
+test/

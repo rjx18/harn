@@ -240,3 +240,39 @@ test("scanAnchors respects gitignore", async () => {
 
   assert.equal(result.anchors.length, 0);
 });
+
+test("scanAnchors respects harnignore for tracked documentation examples", async () => {
+  const root = await mkdtemp(join(tmpdir(), "harn-harnignore-"));
+  await mkdir(join(root, "backend"), { recursive: true });
+  await mkdir(join(root, "skill", "references"), { recursive: true });
+  await writeFile(
+    join(root, ".harnignore"),
+    ["README.md", "skill/", "fixtures/*.md"].join("\n")
+  );
+  await writeFile(
+    join(root, "README.md"),
+    "# harn:assume documented-example ref=readme-example\n# harn:end documented-example\n"
+  );
+  await writeFile(
+    join(root, "skill", "references", "install.md"),
+    "# harn:assume documented-skill-example ref=skill-example\n# harn:end documented-skill-example\n"
+  );
+  await mkdir(join(root, "fixtures"), { recursive: true });
+  await writeFile(
+    join(root, "fixtures", "example.md"),
+    "# harn:assume fixture-example ref=fixture\n# harn:end fixture-example\n"
+  );
+  await writeFile(
+    join(root, "backend", "workflow.py"),
+    "if active:  # harn:assume single-active-workflow ref=workflow-guard\n"
+  );
+  execFileSync("git", ["init"], { cwd: root });
+  execFileSync("git", ["add", "."], { cwd: root });
+
+  const result = await scanAnchors(root);
+
+  assert.deepEqual(
+    result.anchors.map((anchor) => anchor.identity),
+    ["single-active-workflow:workflow-guard"]
+  );
+});

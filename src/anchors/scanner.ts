@@ -1,10 +1,20 @@
 import { readFile, readdir } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 import { git } from "../git/exec.js";
 import { parseAssumeMarker, parseEndMarker, type ParsedAssumeMarker } from "./parser.js";
 import type { Anchor, AnchorIssue, AnchorScanResult } from "./types.js";
 
 const internalDirectories = new Set([".git", ".harn"]);
+const harnIgnoreFile = ".harnignore";
+
+interface IgnoreRule {
+  pattern: string;
+  negated: boolean;
+}
+
+interface HarnIgnore {
+  ignores(path: string): boolean;
+}
 
 interface OpenBlock {
   marker: ParsedAssumeMarker;
@@ -112,9 +122,10 @@ export function scanAnchorText(file: string, content: string): AnchorScanResult 
 }
 
 async function listSourceFiles(root: string): Promise<string[]> {
+  const ignore = await loadHarnIgnore(root);
   const gitFiles = await listGitVisibleFiles(root);
   if (gitFiles) {
-    return gitFiles;
+    return gitFiles.filter((file) => !ignore.ignores(relative(root, file)));
   }
 
   const files: string[] = [];
@@ -128,6 +139,11 @@ async function listSourceFiles(root: string): Promise<string[]> {
       }
 
       const path = join(dir, entry.name);
+      const relativePath = relative(root, path);
+      if (ignore.ignores(entry.isDirectory() ? `${relativePath}/` : relativePath)) {
+        continue;
+      }
+
       if (entry.isDirectory()) {
         await walk(path);
       } else if (entry.isFile()) {
@@ -155,6 +171,112 @@ async function listGitVisibleFiles(root: string): Promise<string[] | undefined> 
 
 function isInternalPath(file: string): boolean {
   return file === ".git" || file.startsWith(".git/") || file === ".harn" || file.startsWith(".harn/");
+}
+
+async function loadHarnIgnore(root: string): Promise<HarnIgnore> {
+  let content = "";
+  try {
+    content = await readFile(join(root, harnIgnoreFile), "utf8");
+  } catch {
+    return { ignores: () => false };
+  }
+
+  const rules = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"))
+    .map((line): IgnoreRule => {
+      const negated = line.startsWith("!");
+      return {
+        pattern: normalizeIgnorePattern(negated ? line.slice(1) : line),
+        negated
+      };
+    })
+    .filter((rule) => rule.pattern !== "");
+
+  return {
+    ignores(path: string): boolean {
+      const normalizedPath = normalizePath(path);
+      let ignored = false;
+
+      for (const rule of rules) {
+        if (matchesIgnoreRule(normalizedPath, rule.pattern)) {
+          ignored = !rule.negated;
+        }
+      }
+
+      return ignored;
+    }
+  };
+}
+
+function normalizeIgnorePattern(pattern: string): string {
+  return normalizePath(pattern).replace(/^\/+/, "");
+}
+
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^\.\/+/, "");
+}
+
+function matchesIgnoreRule(path: string, pattern: string): boolean {
+  if (pattern.endsWith("/")) {
+    const directory = pattern.slice(0, -1);
+    return matchesDirectoryRule(path, directory);
+  }
+
+  if (hasGlob(pattern)) {
+    return matchesGlobRule(path, pattern);
+  }
+
+  if (pattern.includes("/")) {
+    return path === pattern || path.startsWith(`${pattern}/`);
+  }
+
+  return basename(path) === pattern || path.split("/").includes(pattern);
+}
+
+function matchesDirectoryRule(path: string, directory: string): boolean {
+  if (directory.includes("/")) {
+    return path === directory || path.startsWith(`${directory}/`);
+  }
+
+  return path.split("/").includes(directory);
+}
+
+function matchesGlobRule(path: string, pattern: string): boolean {
+  const candidates = pattern.includes("/") ? [path] : [basename(path), ...path.split("/")];
+  const regexp = new RegExp(`^${globToRegExp(pattern)}$`);
+  return candidates.some((candidate) => regexp.test(candidate));
+}
+
+function hasGlob(pattern: string): boolean {
+  return pattern.includes("*") || pattern.includes("?");
+}
+
+function globToRegExp(pattern: string): string {
+  let result = "";
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index];
+    const next = pattern[index + 1];
+
+    if (character === "*" && next === "*") {
+      result += ".*";
+      index += 1;
+    } else if (character === "*") {
+      result += "[^/]*";
+    } else if (character === "?") {
+      result += "[^/]";
+    } else {
+      result += escapeRegExp(character);
+    }
+  }
+
+  return result;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[\\^$+?.()|[\]{}]/g, "\\$&");
 }
 
 function makeAnchor(

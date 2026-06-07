@@ -10,6 +10,8 @@ test("prints top-level help", () => {
 
   assert.match(output, /Usage: harn/);
   assert.match(output, /init/);
+  assert.match(output, /install/);
+  assert.match(output, /install-skill/);
   assert.match(output, /find/);
   assert.match(output, /plan/);
   assert.match(output, /check/);
